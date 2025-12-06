@@ -39,3 +39,23 @@
 
 # debug information files
 *.dwo
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Build directories
+build/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Windows
+Thumbs.db
+
+# Simulation data
+data/
+*.bin
+*.dat
