@@ -4,6 +4,7 @@
 #include "Constants.hpp"
 #include "Config.hpp"
 
+#include <string>
 #include <cstdint>
 #include <vector>
 #include <fstream>

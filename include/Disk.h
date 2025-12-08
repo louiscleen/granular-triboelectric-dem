@@ -29,7 +29,7 @@ private:
 
     bool caged;
     int m_patch; // Nombre de patchs
-    int m_qmax; // Nombre maximum de charges par patch
+    int m_sat; // Nombre maximum de charges par patch
     
 
     
@@ -86,7 +86,7 @@ public:
     void add_charge(int, int);
     std::vector<int> getPatchCharges();
     int getPatchCharge(int);
-    int getQmax();
+    int get_sat();
     
 
     void addContact(int, int, int, bool);

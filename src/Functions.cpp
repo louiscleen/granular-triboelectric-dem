@@ -65,7 +65,7 @@ void place_grains(std::vector<Disk>& grains, const config::Config& cfg, const in
         x = -cfg.boundaries.lx / 2. + radius + dist(gen) * (cfg.boundaries.lx - 2. * radius);
 
         if (cfg.boundaries.oscillation.shape == 1 || cfg.boundaries.oscillation.shape == 2)
-            y = -cfg.boundaries.ly/2.+cfg.boundaries.oscillation.correction+radius+((double)(std::rand())/RAND_MAX)*(cfg.boundaries.ly-2.*radius-2*cfg.boundaries.oscillation.correction);
+            y = -cfg.boundaries.ly/2. + cfg.boundaries.oscillation.correction + radius + dist(gen) * (cfg.boundaries.ly - 2. * radius - 2. * cfg.boundaries.oscillation.correction);
         else
             y = -cfg.boundaries.ly/2. + radius + dist(gen) * (cfg.boundaries.ly - 2. * radius);
 

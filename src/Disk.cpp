@@ -30,13 +30,13 @@ Disk::Disk()
     m_M = Eigen::Vector3d::Zero();
 
     m_patch = 0; // Nombre de patchs
-    m_qmax = 0; // Nombre maximum de charges par patch
+    m_sat = 0; // Nombre maximum de charges par patch
     m_patch_state = vector<bool>(m_patch,false);
     m_patch_charges = vector<int>(m_patch,0);
     //std::vector<double> m_patch_angle(i_p);
 }
 
-Disk::Disk(int i_index, int i_patch, int i_qmax, vector<bool> i_patch_state, double i_radius, double i_mass, double i_x, double i_y, double i_vx, double i_vy)
+Disk::Disk(int i_index, int i_patch, int i_sat, vector<bool> i_patch_state, double i_radius, double i_mass, double i_x, double i_y, double i_vx, double i_vy)
 {
     m_index = i_index;
     m_linkedDisk = nullptr;
@@ -56,7 +56,7 @@ Disk::Disk(int i_index, int i_patch, int i_qmax, vector<bool> i_patch_state, dou
     m_M = Eigen::Vector3d::Zero();
 
     m_patch = i_patch; // Nombre de patchs
-    m_qmax = i_qmax; // Nombre maximum de charges par patch
+    m_sat = i_sat; // Nombre maximum de charges par patch
     m_patch_state = i_patch_state;
     m_patch_charges = vector<int>(i_patch,0);
     //std::vector<double> m_patch_angle(i_p);
@@ -234,9 +234,9 @@ int Disk::getPatchCharge(int patch_index)
     return 0; // Retourne 0 si l'index est invalide
 }
 
-int Disk::getQmax() 
+int Disk::get_sat() 
 { 
-    return m_qmax; 
+    return m_sat; 
 }
 
 
