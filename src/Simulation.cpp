@@ -22,6 +22,8 @@
 AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     // To avoid dereferencing, define frequently used parameters:
 
+    const int N = cfg.particles.N;
+
     // Electrostatic constants
     const double eps0 = 8.854187817e-12;
     const double lambda_e = cfg.electrostatic.lambda_e;
@@ -114,7 +116,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
     // Initial placement of grains
     std::vector<Disk> grains;
-    grains.reserve(cfg.particles.N);
+    grains.reserve(N);
     place_grains(grains, cfg, task_index); // task_index to ensure different placements across tasks (for RNG seeding)
 
     
@@ -128,8 +130,8 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     }
 
     // Initialize Voro++ container
-    double nx = cbrt(cfg.particles.N) * (lx / ly); // Nombre de cellules en x pour le conteneur Voro++
-    double ny = cbrt(cfg.particles.N) * (ly / lx); // Nombre de cellules en y pour le conteneur Voro++
+    double nx = cbrt(N) * (lx / ly); // Nombre de cellules en x pour le conteneur Voro++
+    double ny = cbrt(N) * (ly / lx); // Nombre de cellules en y pour le conteneur Voro++
     int init_mem_block = 15; // Mémoire initiale pour Voro++
     voro::container_poly con(-lx/2., lx/2., -ly/2., ly/2., 0.0, 1.0, nx, ny, 1,false,false,false, init_mem_block); // conteneur Voro++
 
@@ -186,9 +188,9 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     std::ofstream file_minimal_data;
     file_minimal_data.open(cfg.output.directory + "/minimal_data/md_task_" + std::to_string(task_index) + ".txt");
     file_minimal_data.precision(10); 
-    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << std::endl;
+    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "transfers" << "\t" << "normalized transfers" << std::endl;
 
-
+    int charge_transfers = 0;
 
 
     // Gravity force initialization
@@ -257,7 +259,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     add_screened_coulomb(dsk, *other_dsk_ptr, k_e, lambda_e, r_soft_e, r_cut_e, q);
                     
                     if (delta > 0.) {
-                        compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                 }
                 other_dsk_ptr = other_dsk_ptr->linked_disk();
@@ -276,7 +278,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
                     if (delta > 0.)
                     {
-                        compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
@@ -376,7 +378,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     }
                 } while (cl.inc());
 
-                file_minimal_data << time << "\t" << partic_caged << "\t" << KE << "\n";
+                file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\t" << static_cast<double>(charge_transfers)/N << "\n";
                 
                 results.emplace_back(partic_caged, KE); // Using C++20 aggregate initialization
 

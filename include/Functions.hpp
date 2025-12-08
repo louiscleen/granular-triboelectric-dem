@@ -13,7 +13,7 @@ class Plan;
 
 unsigned int generate_seed();
 void place_grains(std::vector<Disk>& grains, const config::Config& cfg, const int task_index); // task_index to ensure different placements across tasks (for RNG seeding)
-void compute_contact(Disk&,Disk*,double,Eigen::Vector3d&,double,double,double, bool);
+bool compute_contact(Disk&,Disk*,double,Eigen::Vector3d&,double,double,double, bool);
 void compute_contact(Disk&,Disk*,double,Eigen::Vector3d&,double,double,double);
 void compute_contact(Disk&,double,Eigen::Vector3d&,double,double,double);
 
