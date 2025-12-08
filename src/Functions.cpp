@@ -153,9 +153,9 @@ double patch_angle_from_index(int patch_index, int n) {
 }
 
 
-void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle)
+bool compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle)
 {
-    
+    bool ret = false;
 
     Disk* a = &i_disk;
     Disk* b = j_disk_ptr;
@@ -225,22 +225,25 @@ void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vec
             if (a_patch && !b_patch) // Si a est donneur et b accepteur
             {
                 //std::cout << "test" << std::endl;
-                if (a->getPatchCharge(a_patch_index) < a->getQmax() && (b->getPatchCharge(b_patch_index))*-1 < b->getQmax()) // Si patch donneur/accepteur n'est pas saturé
+                if (a->getPatchCharge(a_patch_index) < a->get_sat() && (b->getPatchCharge(b_patch_index))*-1 < b->get_sat()) // Si patch donneur/accepteur n'est pas saturé
                 {
                     a->add_charge(a_patch_index, -dq_contact);
                     b->add_charge(b_patch_index, +dq_contact);
                     a->setContactChargeTransfer(a_patch_index, b->index(), b_patch_index, true);
                     b->setContactChargeTransfer(b_patch_index, a->index(), a_patch_index, true);
+                    ret = true;
+
                 }
             }
             else if ((!a_patch && b_patch)) // Si a est accepteur et b donneur
             {
-                if ((a->getPatchCharge(a_patch_index))*-1 < a->getQmax() && b->getPatchCharge(b_patch_index) < b->getQmax()) // Si patch accepteur/donneur n'est pas saturé
+                if ((a->getPatchCharge(a_patch_index))*-1 < a->get_sat() && b->getPatchCharge(b_patch_index) < b->get_sat()) // Si patch accepteur/donneur n'est pas saturé
                 {
                     a->add_charge(a_patch_index, +dq_contact);
                     b->add_charge(b_patch_index, -dq_contact);
                     a->setContactChargeTransfer(a_patch_index, b->index(), b_patch_index, true);
                     b->setContactChargeTransfer(b_patch_index, a->index(), a_patch_index, true);
+                    ret = true;
                 }
             }
             // sinon : pas de transfert (couple inéligible)
@@ -264,6 +267,8 @@ void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vec
     a->add_momentum(M);
     M = -Ft*b->radius()*i_n.cross(t);
     b->add_momentum(M);
+
+    return ret;
 }
 
 

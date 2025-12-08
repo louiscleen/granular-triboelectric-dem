@@ -186,9 +186,9 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     std::ofstream file_minimal_data;
     file_minimal_data.open(cfg.output.directory + "/minimal_data/md_task_" + std::to_string(task_index) + ".txt");
     file_minimal_data.precision(10); 
-    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << std::endl;
+    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "charge_transfers" << std::endl;
 
-
+    int charge_transfers = 0;
 
 
     // Gravity force initialization
@@ -257,7 +257,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     add_screened_coulomb(dsk, *other_dsk_ptr, k_e, lambda_e, r_soft_e, r_cut_e, q);
                     
                     if (delta > 0.) {
-                        compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                 }
                 other_dsk_ptr = other_dsk_ptr->linked_disk();
@@ -276,7 +276,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
                     if (delta > 0.)
                     {
-                        compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
@@ -376,7 +376,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     }
                 } while (cl.inc());
 
-                file_minimal_data << time << "\t" << partic_caged << "\t" << KE << "\n";
+                file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\n";
                 
                 results.emplace_back(partic_caged, KE); // Using C++20 aggregate initialization
 
