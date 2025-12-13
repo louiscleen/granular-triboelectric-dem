@@ -394,7 +394,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     }
                 } while (cl.inc());
 
-                charges_normalized = static_cast<double>(charge_transfers*2)/N;
+                charges_normalized = static_cast<double>(charge_transfers*2)/(N*n_patch*sat); // each transfer involves 2 patches
 
                 file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\t" << charges_normalized << "\n";
                 
