@@ -188,9 +188,10 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     std::ofstream file_minimal_data;
     file_minimal_data.open(cfg.output.directory + "/minimal_data/md_task_" + std::to_string(task_index) + ".txt");
     file_minimal_data.precision(10); 
-    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "transfers" << "\t" << "normalized transfers" << std::endl;
+    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "transfers" << "\t" << "normalized charges" << std::endl;
 
     int charge_transfers = 0;
+    double charges_normalized = 0.0;
 
 
     // Gravity force initialization
@@ -378,7 +379,9 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     }
                 } while (cl.inc());
 
-                file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\t" << static_cast<double>(charge_transfers)/N << "\n";
+                charges_normalized = static_cast<double>(charge_transfers*2)/N;
+
+                file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\t" << charges_normalized << "\n";
                 
                 results.emplace_back(partic_caged, KE); // Using C++20 aggregate initialization
 
@@ -421,7 +424,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
         partic_caged_mean += results[i].caged_particles;
         KE_mean += results[i].kinetic_energy;
     }
-    return AggregatedResult{partic_caged_mean / mean_frames, KE_mean / mean_frames};
+    return AggregatedResult{partic_caged_mean / mean_frames, KE_mean / mean_frames, charges_normalized};
 }
 
 

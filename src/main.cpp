@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 
         int next_task = 0;
         std::vector<int> task_indices(num_tasks, -1);
-        std::vector<AggregatedResult> results(num_tasks, {-1., -1.}); // Pour contenir moyennes des résultats
+        std::vector<AggregatedResult> results(num_tasks, {-1., -1., -1.}); // Pour contenir moyennes des résultats
         std::vector<TaskInfo> durations(num_tasks, {-1, -1, 0.0});
 
         MPI_Status status;
@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
         config::Config param_cfg = cfg; // copie de la config pour modifier les paramètres de chaque tâche
 
         result_file << "task" << "\t" << "#run" << "\t" << "N" << "\t" << "sat" << "\t" << "q" << "\t" 
-                    << "mean_Nc" << "\t" << "mean_KE"  << "\t" << "duration" << std::endl;
+                    << "mean_Nc" << "\t" << "mean_KE"  << "\t" << "charges_normalized" << "\t" << "duration" << std::endl;
 
         for (int i = 0; i < num_tasks; ++i) {
             // Récupérer les paramètres correspondants à la tâche i
@@ -234,6 +234,7 @@ int main(int argc, char* argv[])
                         << param_cfg.patch.q << "\t"
                         << results[i].mean_caged_particles << "\t"
                         << results[i].mean_kinetic_energy << "\t"
+                        << results[i].charges_normalized << "\t"
                         << durations[i].duration << "\n";
         }
         result_file.close();

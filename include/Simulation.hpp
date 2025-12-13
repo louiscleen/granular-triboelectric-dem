@@ -11,6 +11,7 @@ struct Result {
 struct AggregatedResult {
     double mean_caged_particles;
     double mean_kinetic_energy;
+    double charges_normalized;
 };
 
 AggregatedResult simulation(const config::Config& cfg, const int task_index);
