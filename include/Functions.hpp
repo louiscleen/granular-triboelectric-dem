@@ -17,7 +17,7 @@ bool compute_contact(Disk&,Disk*,double,Eigen::Vector3d&,double,double,double, b
 void compute_contact(Disk&,Disk*,double,Eigen::Vector3d&,double,double,double);
 void compute_contact(Disk&,double,Eigen::Vector3d&,double,double,double);
 
-void add_screened_coulomb(Disk&, Disk&, double, double, double, double, double);
+void compute_screened_coulomb_interaction(Disk&, Disk&, double, double, double, double, std::vector<double>&, int, double);
 double kinetic_energy(Disk&);
 
 

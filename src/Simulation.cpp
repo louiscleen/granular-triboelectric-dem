@@ -27,10 +27,25 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     // Electrostatic constants
     const double eps0 = 8.854187817e-12;
     const double lambda_e = cfg.electrostatic.lambda_e;
-    const double k_e = 1.0 / (4.0 * M_PI * eps0 * cfg.electrostatic.eps_r);
-    const double r_cut_e  = 4.0 * lambda_e;   // cutoff pour efficacité
-    const double r_soft_e = 0.25 * ((cfg.particles.min_rad + cfg.particles.max_rad) * 0.5); // adoucissement numérique
+    const double inv_lambda = 1.0 / lambda_e;
+    const double ke = 1.0 / (4.0 * M_PI * eps0 * cfg.electrostatic.eps_r);
     const double q = cfg.patch.q;
+    const double ke_q_q = ke * q * q;
+    const double r_cut_e  = 4.0 * lambda_e;   // cutoff pour efficacité
+    const double r_cut_e2 = r_cut_e * r_cut_e;
+    const double fast_r_cut = (r_cut_e + cfg.particles.min_rad + cfg.particles.max_rad)*0.9; // pour accélérer le test préalable de distance
+    const double fast_r_cut2 = fast_r_cut * fast_r_cut;
+    const double r_soft_e = 0.25 * ((cfg.particles.min_rad + cfg.particles.max_rad) * 0.5); // adoucissement numérique
+    const int n_patch = cfg.patch.n;
+    const int sat = cfg.patch.sat;
+
+    
+
+    std::vector<double> patch_angle_cache;
+    for (int i = 0; i < n_patch; ++i) {
+        double angle = (i + 0.5) * (2.0 * M_PI / (double)n_patch);
+        patch_angle_cache.push_back(angle);
+    }
 
     const double threshold_cage = cfg.simulation.threshold_cage;
     
@@ -138,7 +153,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
     // Linked cells initialization
     double cellSize = 2.2 * cfg.particles.max_rad;
-    int extendedNeighbor_radius = 3;
+
 
     int nCellx = lx / cellSize;
     int nCelly = ly / cellSize;
@@ -165,7 +180,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
             {
                 cellules[i].add_neighbor(&cellules[j]);
             }
-            else if (delta_x < extendedNeighbor_radius && delta_y < extendedNeighbor_radius)
+            else if (delta_x < 3 && delta_y < 3 && delta_x + delta_y < 4)
             {
                 cellules[i].add_neighbor_of_neighbor(&cellules[j]);
             }
@@ -257,7 +272,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    add_screened_coulomb(dsk, *other_dsk_ptr, k_e, lambda_e, r_soft_e, r_cut_e, q);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     
                     if (delta > 0.) {
                         charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
@@ -275,7 +290,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    add_screened_coulomb(dsk, *other_dsk_ptr, k_e, lambda_e, r_soft_e, r_cut_e, q);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
 
                     if (delta > 0.)
                     {
@@ -291,7 +306,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 Disk *other_dsk_ptr = cl->head_of_list();
                 while (other_dsk_ptr != nullptr)
                 {
-                    add_screened_coulomb(dsk, *other_dsk_ptr, k_e, lambda_e, r_soft_e, r_cut_e, q);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
             }
@@ -413,7 +428,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
     // Compute mean values over specified time interval
     if (cfg.time.mean_time == 0.0)
-        return AggregatedResult{static_cast<double>(results.back().caged_particles), results.back().kinetic_energy};
+        return AggregatedResult{static_cast<double>(results.back().caged_particles), results.back().kinetic_energy, charges_normalized};
 
     double partic_caged_mean = 0;
     double KE_mean = 0.0;

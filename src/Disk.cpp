@@ -227,11 +227,7 @@ std::vector<int> Disk::getPatchCharges()
 
 int Disk::getPatchCharge(int patch_index) 
 { 
-    if(patch_index >= 0 && patch_index < m_patch) 
-    { 
-        return m_patch_charges[patch_index]; 
-    } 
-    return 0; // Retourne 0 si l'index est invalide
+    return m_patch_charges[patch_index]; 
 }
 
 int Disk::get_sat() 
