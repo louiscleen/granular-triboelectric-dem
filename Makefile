@@ -7,7 +7,7 @@ DATA_DIR := data
 TARGET := dem
 
 # --- Dossier d'installation des dépendances externes ---
-VORO_DIR    := C:/voro++-0.4.6/src
+VORO_DIR    := $(EXTERNAL_DIR)/voro++-0.4.6/src
 EIGEN_DIR   := $(EXTERNAL_DIR)/eigen-5.0.0
 CXXOPTS_DIR := $(EXTERNAL_DIR)/cxxopts
 TOML_DIR    := $(EXTERNAL_DIR)/toml
@@ -42,6 +42,10 @@ CXXFLAGS_LM4 := -std=c++20 -O3 -march=znver4 -mtune=znver4 -fno-math-errno -fno-
 			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
 LDFLAGS_LM4 := -L$(VORO_DIR) -lvoro++
 
+CXXFLAGS_NIC5 := -std=c++20 -O3 -march=znver2 -mtune=znver2 -fno-math-errno -fno-trapping-math -ffp-contract=fast -DNDEBUG \
+			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
+LDFLAGS_NIC5 := -L$(VORO_DIR) -lvoro++
+
 
 
 # --- Fichiers sources et objets ---
@@ -53,6 +57,7 @@ OBJS_QUICK := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/quick/%.o)
 OBJS_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/fast/%.o)
 OBJS_MPI_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/MPI_fast/%.o)
 OBJS_LM4 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/LM4/%.o)
+OBJS_NIC5 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/NIC5/%.o)
 
 DEPS_RELEASE := $(OBJS_RELEASE:.o=.d)
 DEPS_DEBUG := $(OBJS_DEBUG:.o=.d)
@@ -146,6 +151,15 @@ $(TARGET)_LM4: $(OBJS_LM4)
 $(BUILD_DIR)/LM4/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/LM4
 	$(CXX_MPI) $(CXXFLAGS_LM4) -c $< -o $@
 
+# --- Mode LM4 ---
+NIC5: $(TARGET)_NIC5
+
+$(TARGET)_NIC5: $(OBJS_NIC5)
+	$(CXX_MPI) $^ -o $@ $(LDFLAGS_NIC5)
+
+$(BUILD_DIR)/NIC5/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/NIC5
+	$(CXX_MPI) $(CXXFLAGS_NIC5) -c $< -o $@
+
 # --- Création des répertoires de build ---
 $(BUILD_DIR)/release:
 	mkdir -p $(BUILD_DIR)/release
@@ -168,9 +182,12 @@ $(BUILD_DIR)/MPI_fast:
 $(BUILD_DIR)/LM4:
 	mkdir -p $(BUILD_DIR)/LM4
 
+$(BUILD_DIR)/NIC5:
+	mkdir -p $(BUILD_DIR)/NIC5
+
 # --- Nettoyage ---
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4
+	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4 $(TARGET)_NIC5
 
 # -- Inclure les dépendances automatiquement ---
 -include $(DEPS_RELEASE)
