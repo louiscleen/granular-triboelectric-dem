@@ -318,10 +318,8 @@ void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vec
 
 
 
-void compute_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
+void compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
 {
-
-
     //contact base
     i_n.normalize();
     Eigen::Vector3d v = -i_disk.v() + i_disk.radius()*i_disk.w().cross(i_n);

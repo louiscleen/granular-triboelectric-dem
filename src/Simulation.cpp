@@ -320,7 +320,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
                 if (delta > 0.)
                 {
-                    compute_contact(dsk, delta, n, kn, e, mu);
+                    compute_disk_wall_contact(dsk, delta, n, kn, e, mu);
                 }
             }
 
