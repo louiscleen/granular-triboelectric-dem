@@ -32,7 +32,7 @@ mean_time = -1.0        # Time over which the mean values are computed [s]
 # Note that mean values are computed over the interval [total - mean_time, total]
 # If set to 0.0, only the final values at time = total are considered, if set to < 0.0, mean values are computed over [rec_start to total]
 fps = 100 				# Framerate 					[frames/s]
-dt = 5e-06 				# Time step						[s]
+dt = 1e-05 				# Time step						[s]
 # Note that the number of snapshots is computed as: n_snapshots = (total-rec_start) * fps
 
 [particles]
@@ -59,11 +59,11 @@ sat = 10				# Maximum charge per patch
 # sat = { start = 0, end = 10, n = 6 } is also valid
 
 n = 7 					# Number of patches per grain
-
 q = 2e-11 		    	# Elementary charge per patch 	[C]
 # q can be set as a list or table to run multiple simulation with the following syntax:
 # q = [2e-11, 4e-11, 8e-11] is valid
 # q = { start = 0.1, end = 1.0, n = 10 } is also valid
+grounded_walls = false   # If true, walls are considered grounded (particles can transfer charge to walls, which remain at zero potential)
 
 [boundaries] 			# 
 lx = 0.03 				# Container width				[m]

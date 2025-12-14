@@ -38,6 +38,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const double r_soft_e = 0.25 * ((cfg.particles.min_rad + cfg.particles.max_rad) * 0.5); // adoucissement numérique
     const int n_patch = cfg.patch.n;
     const int sat = cfg.patch.sat;
+    const bool grounded_walls = cfg.patch.grounded_walls;
 
     
 
@@ -275,7 +276,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     
                     if (delta > 0.) {
-                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                 }
                 other_dsk_ptr = other_dsk_ptr->linked_disk();
@@ -294,7 +295,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
                     if (delta > 0.)
                     {
-                        charge_transfers += compute_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
                     }
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
@@ -320,7 +321,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
                 if (delta > 0.)
                 {
-                    compute_disk_wall_contact(dsk, delta, n, kn, e, mu);
+                    compute_disk_wall_contact(dsk, delta, n, kn, e, mu, grounded_walls);
                 }
             }
 
@@ -330,14 +331,14 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 double delta = (dsk.radius() + bottom_disk.radius()) - n.norm();
 
                 if (delta > 0.) {
-                    compute_contact(dsk, &bottom_disk, delta, n, kn, e, mu);
+                    compute_disk_circular_piston_contact(dsk, &bottom_disk, delta, n, kn, e, mu);
                 }
 
                 n = dsk.r() - top_disk.r();
                 delta = (dsk.radius() + top_disk.radius()) - n.norm();
 
                 if (delta > 0.) {
-                    compute_contact(dsk, &top_disk, delta, n, kn, e, mu);
+                    compute_disk_circular_piston_contact(dsk, &top_disk, delta, n, kn, e, mu);
                 }
             }
         }

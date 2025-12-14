@@ -153,7 +153,7 @@ double patch_angle_from_index(int patch_index, int n) {
 }
 
 
-bool compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle)
+bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle)
 {
     bool ret = false;
 
@@ -272,7 +272,7 @@ bool compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vec
 }
 
 
-void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
+void compute_disk_circular_piston_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
 {
     Disk* a = &i_disk;
     Disk* b = j_disk_ptr;
@@ -317,8 +317,7 @@ void compute_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vec
 }
 
 
-
-void compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
+bool compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool grounded_walls)
 {
     //contact base
     i_n.normalize();
@@ -353,6 +352,13 @@ void compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i
     //torque
     Eigen::Vector3d M = -Ft*i_disk.radius()*i_n.cross(t);
     i_disk.add_momentum(M);
+
+    if (grounded_walls)
+    {
+
+    }
+
+    return false;
 }
 
 void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke_q_q, double inv_lambda, double r_soft, double r_cut2, std::vector<double>& patch_angle_cache, int n_patch, double fast_r_cut2)
