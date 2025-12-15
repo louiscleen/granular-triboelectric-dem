@@ -63,6 +63,8 @@ q = 2e-11 		    	# Elementary charge per patch 	[C]
 # q can be set as a list or table to run multiple simulation with the following syntax:
 # q = [2e-11, 4e-11, 8e-11] is valid
 # q = { start = 0.1, end = 1.0, n = 10 } is also valid
+tau = 0.0            # Global relaxation time on the particle for charge redistribution among patches (set to 0 to disable) [s]
+tau_leak = 0.0          # Relaxation time for patch charge leakage to the outside (set to 0.0 to disable leakage) [s]
 grounded_walls = 0      # If set to 0, walls are insulating (no charge transfer between particles and walls)
                         # If set to 1, walls are considered grounded (particles patches can transfer charge to walls, which remain at zero potential)
                         # If set to 2, walls are considered grounded and particles lose all their patch charges upon contact with a wall

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <numeric>
 #include <chrono>
 #include <random>
 #include <filesystem>
@@ -39,6 +40,11 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const int sat = cfg.patch.sat;
     const double qmax = q * sat;
     const int grounded_walls = cfg.patch.grounded_walls;
+    const bool tau_enabled = cfg.patch.tau_enabled;
+    const double tau = cfg.patch.tau;
+    const bool tau_leak_enabled = cfg.patch.tau_leak_enabled;
+    const double tau_leak = cfg.patch.tau_leak;
+
 
     
 
@@ -61,6 +67,9 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const double start_time = cfg.time.rec_start;
     const double dt = cfg.time.dt;
 
+    // Coefficients for relaxation time integration
+    const double coeff_tau = tau_enabled ? dt/tau : 0.0;
+    const double coeff_tau_leak = tau_leak_enabled ? dt/tau_leak : 0.0;
 
     // Container dimensions
     double lx = cfg.boundaries.lx;
@@ -346,6 +355,21 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
         // update velocity and position
         for (Disk &dsk : grains)
         {
+            if (tau_enabled) {
+                std::vector<double> patch_charges = dsk.getPatchCharges();
+                double patch_charges_mean = std::accumulate(patch_charges.begin(), patch_charges.end(), 0.0) / n_patch;
+                for (int i = 0; i < n_patch; i++) {
+                    dsk.add_charge(i, -coeff_tau * (patch_charges[i] - patch_charges_mean));
+                }
+            }
+
+            if (tau_leak_enabled) {
+                std::vector<double> patch_charges = dsk.getPatchCharges();
+                for (int i = 0; i < n_patch; i++) {
+                    dsk.multiply_charge(i, 1.0 - coeff_tau_leak);
+                }
+            }
+
             dsk.update_velocity(0.5 * dt);
 
             // clean contacts

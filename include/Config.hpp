@@ -52,6 +52,10 @@ struct PatchConfig
     std::vector<double> q_list;
     double q;
     int grounded_walls;
+    bool tau_enabled;
+    double tau;
+    bool tau_leak_enabled;
+    double tau_leak;
 };
 
 struct BoundariesConfig

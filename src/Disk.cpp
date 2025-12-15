@@ -224,6 +224,11 @@ void Disk::add_charge(int patch_index, double charge)
     m_patch_charges[patch_index] += charge; 
 }
 
+void Disk::multiply_charge(int patch_index, double factor) 
+{ 
+    m_patch_charges[patch_index] *= factor; 
+}
+
 void Disk::reset_patch_charges() 
 { 
     std::fill(m_patch_charges.begin(), m_patch_charges.end(), 0.0); 

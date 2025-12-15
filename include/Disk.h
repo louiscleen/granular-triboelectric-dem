@@ -86,6 +86,7 @@ public:
     std::vector<bool> getPatchStates();
     void set_charge(int, double);
     void add_charge(int, double);
+    void multiply_charge(int, double);
     void reset_patch_charges();
     void reset_patch_charge(int);
     std::vector<double> getPatchCharges();
