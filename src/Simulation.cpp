@@ -30,7 +30,6 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const double inv_lambda = 1.0 / lambda_e;
     const double ke = 1.0 / (4.0 * M_PI * eps0 * cfg.electrostatic.eps_r);
     const double q = cfg.patch.q;
-    const double ke_q_q = ke * q * q;
     const double r_cut_e  = 4.0 * lambda_e;   // cutoff pour efficacité
     const double r_cut_e2 = r_cut_e * r_cut_e;
     const double fast_r_cut = (r_cut_e + cfg.particles.min_rad + cfg.particles.max_rad)*0.9; // pour accélérer le test préalable de distance
@@ -38,6 +37,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const double r_soft_e = 0.25 * ((cfg.particles.min_rad + cfg.particles.max_rad) * 0.5); // adoucissement numérique
     const int n_patch = cfg.patch.n;
     const int sat = cfg.patch.sat;
+    const double qmax = q * sat;
     const int grounded_walls = cfg.patch.grounded_walls;
 
     
@@ -124,8 +124,8 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
         circular = true;
         position_bottom_disk = -ly/2. - (lx/2.)*std::sqrt(3.0);
         position_top_disk = ly/2. + (lx/2.)*std::sqrt(3.0);
-        bottom_disk = Disk(-2, 0, 0, std::vector<bool>(), lx, 1.0, 0.0, position_bottom_disk, 0.0, 0.0);
-        top_disk = Disk(-1, 0, 0, std::vector<bool>(), lx, 1.0, 0.0, position_top_disk, 0.0, 0.0);
+        bottom_disk = Disk(-2, 0, 0, 0.0, std::vector<bool>(), lx, 1.0, 0.0, position_bottom_disk, 0.0, 0.0);
+        top_disk = Disk(-1, 0, 0, 0.0, std::vector<bool>(), lx, 1.0, 0.0, position_top_disk, 0.0, 0.0);
     }
 
 
@@ -273,10 +273,10 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     
                     if (delta > 0.) {
-                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle, q, qmax);
                     }
                 }
                 other_dsk_ptr = other_dsk_ptr->linked_disk();
@@ -291,11 +291,11 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
 
                     if (delta > 0.)
                     {
-                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle);
+                        charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle, q, qmax);
                     }
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
@@ -307,7 +307,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 Disk *other_dsk_ptr = cl->head_of_list();
                 while (other_dsk_ptr != nullptr)
                 {
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke_q_q, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
             }

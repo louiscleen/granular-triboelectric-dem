@@ -30,17 +30,18 @@ private:
     bool caged;
     int m_patch; // Nombre de patchs
     int m_sat; // Nombre maximum de charges par patch
+    double m_qmax; // Charge maximale par patch
     
 
     
     std::vector<bool> m_patch_state; // Tableau des états des patchs (1 = accepteur, 0 = donneur)
-    std::vector<int> m_patch_charges; // Tableau des charges des patchs
+    std::vector<double> m_patch_charges; // Tableau des charges des patchs
 
 
 
 public:
     Disk();
-    Disk(int, int, int, std::vector<bool>, double, double, double, double, double, double);
+    Disk(int, int, int, double, std::vector<bool>, double, double, double, double, double, double);
     ~Disk();
     
     void update_velocity(double);
@@ -83,12 +84,12 @@ public:
 
     int patch_count();
     std::vector<bool> getPatchStates();
-    void set_charge(int, int);
-    void add_charge(int, int);
+    void set_charge(int, double);
+    void add_charge(int, double);
     void reset_patch_charges();
     void reset_patch_charge(int);
-    std::vector<int> getPatchCharges();
-    int getPatchCharge(int);
+    std::vector<double> getPatchCharges();
+    double getPatchCharge(int);
     int get_sat();
     
 

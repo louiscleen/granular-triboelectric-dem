@@ -31,12 +31,13 @@ Disk::Disk()
 
     m_patch = 0; // Nombre de patchs
     m_sat = 0; // Nombre maximum de charges par patch
+    m_qmax = 0.; // Charge maximale par patch
     m_patch_state = vector<bool>(m_patch,false);
-    m_patch_charges = vector<int>(m_patch,0);
+    m_patch_charges = vector<double>(m_patch,0);
     //std::vector<double> m_patch_angle(i_p);
 }
 
-Disk::Disk(int i_index, int i_patch, int i_sat, vector<bool> i_patch_state, double i_radius, double i_mass, double i_x, double i_y, double i_vx, double i_vy)
+Disk::Disk(int i_index, int i_patch, int i_sat, double i_qmax, vector<bool> i_patch_state, double i_radius, double i_mass, double i_x, double i_y, double i_vx, double i_vy)
 {
     m_index = i_index;
     m_linkedDisk = nullptr;
@@ -58,8 +59,9 @@ Disk::Disk(int i_index, int i_patch, int i_sat, vector<bool> i_patch_state, doub
     m_patch = i_patch; // Nombre de patchs
     m_sat = i_sat; // Nombre maximum de charges par patch
     m_patch_state = i_patch_state;
-    m_patch_charges = vector<int>(i_patch,0);
+    m_patch_charges = vector<double>(i_patch,0.0);
     //std::vector<double> m_patch_angle(i_p);
+    m_qmax = i_qmax; // Charge maximale par patch
 }
 
 Disk::~Disk()
@@ -212,32 +214,32 @@ std::vector<bool> Disk::getPatchStates()
     return m_patch_state; 
 }
 
-void Disk::set_charge(int patch_index, int charge) 
+void Disk::set_charge(int patch_index, double charge) 
 { 
     m_patch_charges[patch_index] = charge; 
 }
 
-void Disk::add_charge(int patch_index, int charge) 
+void Disk::add_charge(int patch_index, double charge) 
 { 
     m_patch_charges[patch_index] += charge; 
 }
 
 void Disk::reset_patch_charges() 
 { 
-    std::fill(m_patch_charges.begin(), m_patch_charges.end(), 0); 
+    std::fill(m_patch_charges.begin(), m_patch_charges.end(), 0.0); 
 }
 
 void Disk::reset_patch_charge(int patch_index) 
 { 
-    m_patch_charges[patch_index] = 0; 
+    m_patch_charges[patch_index] = 0.0; 
 }
 
-std::vector<int> Disk::getPatchCharges() 
+std::vector<double> Disk::getPatchCharges() 
 { 
     return m_patch_charges; 
 }
 
-int Disk::getPatchCharge(int patch_index) 
+double Disk::getPatchCharge(int patch_index) 
 { 
     return m_patch_charges[patch_index]; 
 }

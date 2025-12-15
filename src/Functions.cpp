@@ -100,7 +100,8 @@ void place_grains(std::vector<Disk>& grains, const config::Config& cfg, const in
                     }
                 }
             }
-            grains.emplace_back(number_of_placed_grains, cfg.patch.n, cfg.patch.sat, patch_state, radius, mass, x, y, vx, vy);
+            double qmax = cfg.patch.q * cfg.patch.sat;
+            grains.emplace_back(number_of_placed_grains, cfg.patch.n, cfg.patch.sat, qmax, patch_state, radius, mass, x, y, vx, vy);
             number_of_placed_grains++;
         }
     }
@@ -153,7 +154,7 @@ double patch_angle_from_index(int patch_index, int n) {
 }
 
 
-bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle)
+bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool toggle, double q, double qmax)
 {
     bool ret = false;
 
@@ -204,7 +205,7 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
 
 
 
-        int dq_contact = -1; // !! Attention : mettre une charge postive casse les conditions if ci-dessous !! (car on vérifie pas la valeur absolue pour la saturation pour pas ralentir le programme)
+        //int dq_contact = -1; // !! Attention : mettre une charge postive casse les conditions if ci-dessous !! (car on vérifie pas la valeur absolue pour la saturation pour pas ralentir le programme)
 
         // DEBUG
         //std::cout << "Transfert de charge entre patch " << a_patch_index << " de la particule " << a->index() << " et patch " << b_patch_index << " de la particule " << b->index() << std::endl;
@@ -223,10 +224,11 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
             if (a_patch && !b_patch) // Si a est donneur et b accepteur
             {
                 //std::cout << "test" << std::endl;
-                if (a->getPatchCharge(a_patch_index) < a->get_sat() && (b->getPatchCharge(b_patch_index))*-1 < b->get_sat()) // Si patch donneur/accepteur n'est pas saturé
+                if (a->getPatchCharge(a_patch_index) < qmax && (b->getPatchCharge(b_patch_index))*-1 < qmax) // Si patch donneur/accepteur n'est pas saturé
                 {
-                    a->add_charge(a_patch_index, -dq_contact);
-                    b->add_charge(b_patch_index, +dq_contact);
+                    /// A MODIFIER POUR GERER LE CAS OU q NE DIVISE PAS EXACTEMENT LA CHARGE DU PATCH
+                    a->add_charge(a_patch_index, q);
+                    b->add_charge(b_patch_index, -q);
                     a->setContactChargeTransfer(a_patch_index, b->index(), b_patch_index, true);
                     b->setContactChargeTransfer(b_patch_index, a->index(), a_patch_index, true);
                     ret = true;
@@ -235,10 +237,10 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
             }
             else if ((!a_patch && b_patch)) // Si a est accepteur et b donneur
             {
-                if ((a->getPatchCharge(a_patch_index))*-1 < a->get_sat() && b->getPatchCharge(b_patch_index) < b->get_sat()) // Si patch accepteur/donneur n'est pas saturé
+                if ((a->getPatchCharge(a_patch_index))*-1 < qmax && b->getPatchCharge(b_patch_index) < qmax) // Si patch accepteur/donneur n'est pas saturé
                 {
-                    a->add_charge(a_patch_index, +dq_contact);
-                    b->add_charge(b_patch_index, -dq_contact);
+                    a->add_charge(a_patch_index, -q);
+                    b->add_charge(b_patch_index, q);
                     a->setContactChargeTransfer(a_patch_index, b->index(), b_patch_index, true);
                     b->setContactChargeTransfer(b_patch_index, a->index(), a_patch_index, true);
                     ret = true;
@@ -379,7 +381,7 @@ void compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i
     }
 }
 
-void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke_q_q, double inv_lambda, double r_soft, double r_cut2, std::vector<double>& patch_angle_cache, int n_patch, double fast_r_cut2)
+void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke, double inv_lambda, double r_soft, double r_cut2, std::vector<double>& patch_angle_cache, int n_patch, double fast_r_cut2)
 {
     const double rad_a = a.radius();
     const double rad_b = b.radius();
@@ -418,7 +420,7 @@ void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke_q_q, doubl
         if (qi == 0.0) continue;
         const Eigen::Vector3d& posAi = pos_a[i];
         const Eigen::Vector3d& rAi   = r_a[i];
-        const double ke_q_q_qi = ke_q_q * qi;
+        const double ke_qi = ke * qi;
 
         for (int j = 0; j < n_patch; j++) {
             const double qj = q_b[j];
@@ -436,7 +438,7 @@ void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke_q_q, doubl
             double expf = std::exp(-r_eff * inv_lambda);
 
             // Force de Yukawa: F = k q_i q_j e^{-r/λ} ( 1/r^2 + 1/(λ r) ) r̂
-            double mag = ke_q_q_qi * qj * expf * (inv_reff * inv_reff + inv_lambda * inv_reff);
+            double mag = ke_qi * qj * expf * (inv_reff * inv_reff + inv_lambda * inv_reff);
 
             Eigen::Vector3d F = (mag/r) * rvec;
             F_tot += F;
