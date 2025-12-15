@@ -77,7 +77,7 @@ Config from_toml(const toml::table& tbl, std::string seed, int rank)
     cfg.patch.sat_list = get_int_values(patch["sat"], rank);
     cfg.patch.n = patch["n"].value_or(7);
     cfg.patch.q_list = get_double_values(patch["q"], rank);
-    cfg.patch.grounded_walls = patch["grounded_walls"].value_or(false);
+    cfg.patch.grounded_walls = patch["grounded_walls"].value_or(0);
 
     auto boundaries = tbl["boundaries"];
     cfg.boundaries.lx = boundaries["lx"].value_or(0.03);

@@ -83,7 +83,10 @@ public:
 
     int patch_count();
     std::vector<bool> getPatchStates();
+    void set_charge(int, int);
     void add_charge(int, int);
+    void reset_patch_charges();
+    void reset_patch_charge(int);
     std::vector<int> getPatchCharges();
     int getPatchCharge(int);
     int get_sat();

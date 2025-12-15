@@ -160,8 +160,6 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
     Disk* a = &i_disk;
     Disk* b = j_disk_ptr;
 
-    
-    
     //contact base
     i_n.normalize();
     Eigen::Vector3d v =  b->v() + b->radius()*b->w().cross(i_n) - (a->v() - a->radius()*a->w().cross(i_n));
@@ -189,7 +187,6 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
         double ang_abs_b = std::atan2(i_n.y(), i_n.x());
         double ang_abs_a = norm_0_2pi(ang_abs_b + M_PI);
 
-
         // Passage dans le repère des particules
         double ang_a = norm_0_2pi(ang_abs_a - a->theta());
         double ang_b = norm_0_2pi(ang_abs_b - b->theta());
@@ -204,6 +201,7 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
 
         bool a_patch = a->getPatchStates()[a_patch_index];
         bool b_patch = b->getPatchStates()[b_patch_index];
+
 
 
         int dq_contact = -1; // !! Attention : mettre une charge postive casse les conditions if ci-dessous !! (car on vérifie pas la valeur absolue pour la saturation pour pas ralentir le programme)
@@ -272,7 +270,7 @@ bool compute_disk_disk_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, 
 }
 
 
-void compute_disk_circular_piston_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu)
+void compute_disk_circular_piston_contact(Disk& i_disk, Disk* j_disk_ptr, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, int grounded_walls)
 {
     Disk* a = &i_disk;
     Disk* b = j_disk_ptr;
@@ -314,10 +312,24 @@ void compute_disk_circular_piston_contact(Disk& i_disk, Disk* j_disk_ptr, double
     a->add_momentum(M);
     M = -Ft*b->radius()*i_n.cross(t);
     b->add_momentum(M);
+
+    
+    if (grounded_walls == 1)
+    {
+        double angle = std::atan2(i_n.y(), i_n.x()) + M_PI; // Direction du point de contact côté disque
+        angle = norm_0_2pi(angle - i_disk.theta()); // Passage dans le repère de la particule
+        int n = i_disk.patch_count();
+        int patch_index = patch_index_from_angle(angle, n);
+        i_disk.reset_patch_charge(patch_index);
+    }
+    else if (grounded_walls == 2)
+    {
+        i_disk.reset_patch_charges();
+    }
 }
 
 
-bool compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, bool grounded_walls)
+void compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i_n, double i_kn, double i_e, double i_mu, int grounded_walls)
 {
     //contact base
     i_n.normalize();
@@ -353,12 +365,18 @@ bool compute_disk_wall_contact(Disk& i_disk, double i_deltan, Eigen::Vector3d& i
     Eigen::Vector3d M = -Ft*i_disk.radius()*i_n.cross(t);
     i_disk.add_momentum(M);
 
-    if (grounded_walls)
+    if (grounded_walls == 1)
     {
-
+        double angle = std::atan2(i_n.y(), i_n.x()) + M_PI; // Direction du point de contact côté disque
+        angle = norm_0_2pi(angle - i_disk.theta()); // Passage dans le repère de la particule
+        int n = i_disk.patch_count();
+        int patch_index = patch_index_from_angle(angle, n);
+        i_disk.reset_patch_charge(patch_index);
     }
-
-    return false;
+    else if (grounded_walls == 2)
+    {
+        i_disk.reset_patch_charges();
+    }
 }
 
 void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke_q_q, double inv_lambda, double r_soft, double r_cut2, std::vector<double>& patch_angle_cache, int n_patch, double fast_r_cut2)

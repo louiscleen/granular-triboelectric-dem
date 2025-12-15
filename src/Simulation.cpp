@@ -38,7 +38,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     const double r_soft_e = 0.25 * ((cfg.particles.min_rad + cfg.particles.max_rad) * 0.5); // adoucissement numérique
     const int n_patch = cfg.patch.n;
     const int sat = cfg.patch.sat;
-    const bool grounded_walls = cfg.patch.grounded_walls;
+    const int grounded_walls = cfg.patch.grounded_walls;
 
     
 
@@ -331,14 +331,14 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 double delta = (dsk.radius() + bottom_disk.radius()) - n.norm();
 
                 if (delta > 0.) {
-                    compute_disk_circular_piston_contact(dsk, &bottom_disk, delta, n, kn, e, mu);
+                    compute_disk_circular_piston_contact(dsk, &bottom_disk, delta, n, kn, e, mu, grounded_walls);
                 }
 
                 n = dsk.r() - top_disk.r();
                 delta = (dsk.radius() + top_disk.radius()) - n.norm();
 
                 if (delta > 0.) {
-                    compute_disk_circular_piston_contact(dsk, &top_disk, delta, n, kn, e, mu);
+                    compute_disk_circular_piston_contact(dsk, &top_disk, delta, n, kn, e, mu, grounded_walls);
                 }
             }
         }

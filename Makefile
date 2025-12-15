@@ -7,7 +7,7 @@ DATA_DIR := data
 TARGET := dem
 
 # --- Dossier d'installation des dépendances externes ---
-VORO_DIR    := $(EXTERNAL_DIR)/voro++-0.4.6/src
+VORO_DIR    := C:/voro++-0.4.6/src
 EIGEN_DIR   := $(EXTERNAL_DIR)/eigen-5.0.0
 CXXOPTS_DIR := $(EXTERNAL_DIR)/cxxopts
 TOML_DIR    := $(EXTERNAL_DIR)/toml

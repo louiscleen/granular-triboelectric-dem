@@ -63,7 +63,10 @@ q = 2e-11 		    	# Elementary charge per patch 	[C]
 # q can be set as a list or table to run multiple simulation with the following syntax:
 # q = [2e-11, 4e-11, 8e-11] is valid
 # q = { start = 0.1, end = 1.0, n = 10 } is also valid
-grounded_walls = false   # If true, walls are considered grounded (particles can transfer charge to walls, which remain at zero potential)
+grounded_walls = 0      # If set to 0, walls are insulating (no charge transfer between particles and walls)
+                        # If set to 1, walls are considered grounded (particles patches can transfer charge to walls, which remain at zero potential)
+                        # If set to 2, walls are considered grounded and particles lose all their patch charges upon contact with a wall
+                        
 
 [boundaries] 			# 
 lx = 0.03 				# Container width				[m]

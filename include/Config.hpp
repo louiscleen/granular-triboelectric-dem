@@ -51,7 +51,7 @@ struct PatchConfig
     int n;
     std::vector<double> q_list;
     double q;
-    bool grounded_walls;
+    int grounded_walls;
 };
 
 struct BoundariesConfig

@@ -212,12 +212,24 @@ std::vector<bool> Disk::getPatchStates()
     return m_patch_state; 
 }
 
+void Disk::set_charge(int patch_index, int charge) 
+{ 
+    m_patch_charges[patch_index] = charge; 
+}
+
 void Disk::add_charge(int patch_index, int charge) 
 { 
-    if(patch_index >= 0 && patch_index < m_patch) 
-    { 
-        m_patch_charges[patch_index] += charge; 
-    } 
+    m_patch_charges[patch_index] += charge; 
+}
+
+void Disk::reset_patch_charges() 
+{ 
+    std::fill(m_patch_charges.begin(), m_patch_charges.end(), 0); 
+}
+
+void Disk::reset_patch_charge(int patch_index) 
+{ 
+    m_patch_charges[patch_index] = 0; 
 }
 
 std::vector<int> Disk::getPatchCharges() 
