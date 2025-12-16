@@ -57,6 +57,7 @@ Thumbs.db
 
 # Simulation config files
 *.toml
+!config.toml
 
 # Simulation data
 data/
