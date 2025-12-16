@@ -81,7 +81,7 @@ Config from_toml(const toml::table& tbl, std::string seed, int rank)
     cfg.patch.tau = patch["tau"].value_or(0.0);
     cfg.patch.tau_enabled = (cfg.patch.tau > 0.0);
     cfg.patch.tau_leak = patch["tau_leak"].value_or(0.0);
-    cfg.patch.tau_leak_enabled = (cfg.patch.tau_leak > 0);
+    cfg.patch.tau_leak_enabled = (cfg.patch.tau_leak > 0.0);
 
     if (cfg.patch.tau_enabled && cfg.time.dt > cfg.patch.tau / 10.0) {
         if (rank == 0) {

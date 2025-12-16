@@ -352,7 +352,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
             }
         }
 
-        // update velocity and position
+        // update patch charges, velocity and position 
         for (Disk &dsk : grains)
         {
             if (tau_enabled) {
