@@ -14,6 +14,7 @@ TOML_DIR    := $(EXTERNAL_DIR)/toml
 
 
 
+
 # --- Flags ---
 CXXFLAGS := -std=c++20 -O3 -Wall -Wextra -Wshadow -flto \
 			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR) -MMD -MP
@@ -46,6 +47,14 @@ CXXFLAGS_NIC5 := -std=c++20 -O3 -march=znver2 -mtune=znver2 -fno-math-errno -fno
 			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
 LDFLAGS_NIC5 := -L$(VORO_DIR) -lvoro++
 
+CXXFLAGS_D2 := -std=c++20 -O3 -march=skylake -mtune=skylake -fno-math-errno -fno-trapping-math -ffp-contract=fast -DNDEBUG \
+			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
+LDFLAGS_D2 := -L$(VORO_DIR) -lvoro++
+
+CXXFLAGS_H2 := -std=c++20 -O3 -march=znver1 -mtune=znver1 -fno-math-errno -fno-trapping-math -ffp-contract=fast -DNDEBUG \
+			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
+LDFLAGS_H2 := -L$(VORO_DIR) -lvoro++
+
 
 
 # --- Fichiers sources et objets ---
@@ -58,6 +67,8 @@ OBJS_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/fast/%.o)
 OBJS_MPI_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/MPI_fast/%.o)
 OBJS_LM4 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/LM4/%.o)
 OBJS_NIC5 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/NIC5/%.o)
+OBJS_D2 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/D2/%.o)
+OBJS_H2 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/H2/%.o)
 
 DEPS_RELEASE := $(OBJS_RELEASE:.o=.d)
 DEPS_DEBUG := $(OBJS_DEBUG:.o=.d)
@@ -151,7 +162,7 @@ $(TARGET)_LM4: $(OBJS_LM4)
 $(BUILD_DIR)/LM4/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/LM4
 	$(CXX_MPI) $(CXXFLAGS_LM4) -c $< -o $@
 
-# --- Mode LM4 ---
+# --- Mode NIC5 ---
 NIC5: $(TARGET)_NIC5
 
 $(TARGET)_NIC5: $(OBJS_NIC5)
@@ -159,6 +170,22 @@ $(TARGET)_NIC5: $(OBJS_NIC5)
 
 $(BUILD_DIR)/NIC5/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/NIC5
 	$(CXX_MPI) $(CXXFLAGS_NIC5) -c $< -o $@
+
+# --- Mode Dragon2 ---
+D2: $(TARGET)_D2
+
+$(TARGET)_D2: $(OBJS_D2)
+	$(CXX_MPI) $^ -o $@ $(LDFLAGS_D2)
+$(BUILD_DIR)/D2/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/D2
+	$(CXX_MPI) $(CXXFLAGS_D2) -c $< -o $@
+
+# --- Mode Hercule2 ---
+H2: $(TARGET)_H2
+
+$(TARGET)_H2: $(OBJS_H2)
+	$(CXX_MPI) $^ -o $@ $(LDFLAGS_H2)
+$(BUILD_DIR)/H2/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/H2
+	$(CXX_MPI) $(CXXFLAGS_H2) -c $< -o $@
 
 # --- Création des répertoires de build ---
 $(BUILD_DIR)/release:
@@ -185,9 +212,15 @@ $(BUILD_DIR)/LM4:
 $(BUILD_DIR)/NIC5:
 	mkdir -p $(BUILD_DIR)/NIC5
 
+$(BUILD_DIR)/D2:
+	mkdir -p $(BUILD_DIR)/D2
+
+$(BUILD_DIR)/H2:
+	mkdir -p $(BUILD_DIR)/H2
+
 # --- Nettoyage ---
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4 $(TARGET)_NIC5
+	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4 $(TARGET)_NIC5 $(TARGET)_D2 $(TARGET)_H2
 
 # -- Inclure les dépendances automatiquement ---
 -include $(DEPS_RELEASE)
