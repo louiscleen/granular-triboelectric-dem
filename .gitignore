@@ -55,6 +55,9 @@ build/
 # Windows
 Thumbs.db
 
+# Simulation config files
+*.toml
+
 # Simulation data
 data/
 *.bin
