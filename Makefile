@@ -179,7 +179,7 @@ $(TARGET)_D2: $(OBJS_D2)
 $(BUILD_DIR)/D2/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/D2
 	$(CXX_MPI) $(CXXFLAGS_D2) -c $< -o $@
 
-# --- Mode Hercule2 ---
+# --- Mode Hercules2 ---
 H2: $(TARGET)_H2
 
 $(TARGET)_H2: $(OBJS_H2)
