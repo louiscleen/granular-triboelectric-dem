@@ -23,6 +23,8 @@ struct ParticleData {
     double vx, vy;
     double theta;
     double radius;
+    double charge_global;
+    double charge_abs;
     bool isCaged;
 };
 
@@ -134,7 +136,8 @@ public:
                     << p.x << "\t" << p.y << "\t"
                     << p.vx << "\t" << p.vy << "\t"
                     << p.theta << "\t" << p.radius << "\t"
-                    << p.isCaged << "\n";
+                    << p.charge_global << "\t" << p.charge_abs 
+                    << "\t" << p.isCaged << "\n";
             }
             return;
         } else if (save_mode_ == 1) {

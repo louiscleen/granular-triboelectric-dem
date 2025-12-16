@@ -436,7 +436,13 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     std::vector<ParticleData> particles;
                     particles.reserve(grains.size());
                     for (Disk& dsk : grains) {
-                        particles.emplace_back(dsk.index(), dsk.r().x(), dsk.r().y(), dsk.v().x(), dsk.v().y(), dsk.theta(), dsk.radius(), dsk.isCaged()); // Using C++20 aggregate initialization
+                        double charge_global = 0.0;
+                        double charge_abs = 0.0;
+                        for (double qc : dsk.getPatchCharges()) {
+                            charge_global += qc;
+                            charge_abs += std::abs(qc);
+                        }
+                        particles.emplace_back(dsk.index(), dsk.r().x(), dsk.r().y(), dsk.v().x(), dsk.v().y(), dsk.theta(), dsk.radius(), charge_global, charge_abs, dsk.isCaged()); // Using C++20 aggregate initialization
                     }
                     writer->write_snapshot(particles, time);
                 }
