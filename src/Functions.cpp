@@ -442,7 +442,7 @@ void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke, double in
             double expf = std::exp(-r_eff * inv_lambda);
 
             // Force de Yukawa: F = k q_i q_j e^{-r/λ} ( 1/r^2 + 1/(λ r) ) r̂
-            double mag = ke_qi * qj * expf * (inv_reff * inv_reff + inv_lambda * inv_reff);
+            double mag =  ke_qi * qj * expf * (inv_reff * inv_reff + inv_lambda * inv_reff);
 
             Eigen::Vector3d F = (mag/r) * rvec;
             F_tot += F;
@@ -450,8 +450,7 @@ void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke, double in
             // Moments (couples) autour des centres
             // tau = r x F (en 2D: composante z)
             M_a_tot += rAi.cross(F);      // sur A
-            M_b_tot -= r_b[j].cross(F);
-
+            M_b_tot -= r_b[j].cross(F);            
         }
     }
     a.add_force( F_tot);
@@ -459,6 +458,86 @@ void compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke, double in
     a.add_momentum(M_a_tot);
     b.add_momentum(M_b_tot);
 }
+
+double Ep_compute_screened_coulomb_interaction(Disk& a, Disk& b, double ke, double inv_lambda, double r_soft, double r_cut2, std::vector<double>& patch_angle_cache, int n_patch, double fast_r_cut2)
+{
+    double Ep = 0.0;
+    const double rad_a = a.radius();
+    const double rad_b = b.radius();
+    const Eigen::Vector3d n = b.r() - a.r();
+    if (n.squaredNorm() > fast_r_cut2) return 0.0;
+
+    const double theta_a = a.theta();
+    const double theta_b = b.theta();
+
+    const Eigen::Vector3d ar = a.r();
+    const Eigen::Vector3d br = b.r();
+    Eigen::Vector3d F_tot = Eigen::Vector3d::Zero();
+    Eigen::Vector3d M_a_tot = Eigen::Vector3d::Zero();
+    Eigen::Vector3d M_b_tot = Eigen::Vector3d::Zero();
+
+    std::vector<Eigen::Vector3d> r_a(n_patch), r_b(n_patch), pos_a(n_patch), pos_b(n_patch);
+    std::vector<double> q_a(n_patch), q_b(n_patch);
+
+
+    // precompute patch positions & charges
+    for (int i = 0; i < n_patch; ++i) {
+        double sin_a, cos_a, sin_b, cos_b;
+        sincos(theta_a + patch_angle_cache[i], &sin_a, &cos_a);
+        sincos(theta_b + patch_angle_cache[i], &sin_b, &cos_b);
+        r_a[i] = Eigen::Vector3d{rad_a * cos_a, rad_a * sin_a, 0.0};
+        r_b[i] = Eigen::Vector3d{rad_b * cos_b, rad_b * sin_b, 0.0};
+        pos_a[i] = ar + r_a[i];
+        pos_b[i] = br + r_b[i];
+        q_a[i] = a.getPatchCharge(i);
+        q_b[i] = b.getPatchCharge(i);
+  
+    }
+
+    for (int i = 0; i < n_patch; i++) {
+        const double qi = q_a[i];
+        if (qi == 0.0) continue;
+        const Eigen::Vector3d& posAi = pos_a[i];
+        const Eigen::Vector3d& rAi   = r_a[i];
+        const double ke_qi = ke * qi;
+
+        for (int j = 0; j < n_patch; j++) {
+            const double qj = q_b[j];
+            if (qj == 0.0) continue;
+
+            Eigen::Vector3d rvec = posAi - pos_b[j];
+            const double rvec2 = rvec.squaredNorm();
+            if (rvec2 > r_cut2) continue;
+            double r = std::sqrt(rvec2);
+
+            // adoucissement pour éviter r → 0 (le contact gère déjà le court-portée)
+            double r_eff = std::max(r, r_soft);
+            double inv_reff = 1.0 / r_eff;
+
+            double k_expf = ke_qi * qj * std::exp(-r_eff * inv_lambda);
+
+            // Force de Yukawa: F = k q_i q_j e^{-r/λ} ( 1/r^2 + 1/(λ r) ) r̂
+            double mag =  k_expf * (inv_reff * inv_reff + inv_lambda * inv_reff);
+
+            Eigen::Vector3d F = (mag/r) * rvec;
+            F_tot += F;
+
+            Ep += k_expf * inv_reff;
+
+            // Moments (couples) autour des centres
+            // tau = r x F (en 2D: composante z)
+            M_a_tot += rAi.cross(F);      // sur A
+            M_b_tot -= r_b[j].cross(F);
+        }
+    }
+    a.add_force( F_tot);
+    b.add_force(-F_tot);
+    a.add_momentum(M_a_tot);
+    b.add_momentum(M_b_tot);
+
+    return Ep;
+}
+
 
 double kinetic_energy(Disk& dsk)
 {

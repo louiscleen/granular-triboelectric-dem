@@ -18,6 +18,7 @@ void compute_disk_circular_piston_contact(Disk&,Disk*,double,Eigen::Vector3d&,do
 void compute_disk_wall_contact(Disk&,double,Eigen::Vector3d&,double,double,double, int);
 
 void compute_screened_coulomb_interaction(Disk&, Disk&, double, double, double, double, std::vector<double>&, int, double);
+double Ep_compute_screened_coulomb_interaction(Disk&, Disk&, double, double, double, double, std::vector<double>&, int, double);
 double kinetic_energy(Disk&);
 
 

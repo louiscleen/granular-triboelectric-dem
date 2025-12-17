@@ -213,10 +213,13 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     std::ofstream file_minimal_data;
     file_minimal_data.open(cfg.output.directory + "/minimal_data/md_task_" + std::to_string(task_index) + ".txt");
     file_minimal_data.precision(10); 
-    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "transfers" << "\t" << "normalized charges" << std::endl;
+    file_minimal_data << "Time" << "\t" << "N_c" << "\t" << "KE" << "\t" << "Ep" << "\t"
+                      << "charge_transfers" << "\t" << "charge_transfers_normalized" << "\t" << "charges_abs" << std::endl;
 
     int charge_transfers = 0;
-    double charges_normalized = 0.0;
+    double charge_transfers_normalized = 0.0;
+    double E_yukawa = 0.0;
+    double charge_abs_total = 0.0;
 
 
     // Gravity force initialization
@@ -229,6 +232,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
     // ================================================================
     for (double time = 0.; time < total_time; time += dt)
     {
+        E_yukawa = 0.0;
         if (circular) {
             // ------------ Circular plan ------------
             bottom_disk.set_position(0.0, y0_bot - (lx/2.)*std::sqrt(3.0) + A_bot * std::sin(omega_bot * time));
@@ -282,7 +286,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    E_yukawa += Ep_compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
                     
                     if (delta > 0.) {
                         charge_transfers += compute_disk_disk_contact(dsk, other_dsk_ptr, delta, n, kn, e, mu, toggle, q, qmax);
@@ -300,7 +304,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     n = dsk.r() - other_dsk_ptr->r();
                     double delta = (dsk.radius() + other_dsk_ptr->radius()) - n.norm();
 
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    E_yukawa += Ep_compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
 
                     if (delta > 0.)
                     {
@@ -316,7 +320,8 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 Disk *other_dsk_ptr = cl->head_of_list();
                 while (other_dsk_ptr != nullptr)
                 {
-                    compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+                    E_yukawa += Ep_compute_screened_coulomb_interaction(dsk, *other_dsk_ptr, ke, inv_lambda, r_soft_e, r_cut_e2, patch_angle_cache, n_patch, fast_r_cut2);
+    
                     other_dsk_ptr = other_dsk_ptr->linked_disk();
                 }
             }
@@ -393,6 +398,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                 
                 int partic_valide = 0;
                 int partic_caged = 0;
+                charge_abs_total = 0.0;
 
                 double KE = 0.;
                 
@@ -419,11 +425,7 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                     }
                 } while (cl.inc());
 
-                charges_normalized = static_cast<double>(charge_transfers*2)/(N*n_patch*sat); // each transfer involves 2 patches
 
-                file_minimal_data << time << "\t" << partic_caged << "\t" << KE <<  "\t" << charge_transfers << "\t" << charges_normalized << "\n";
-                
-                results.emplace_back(partic_caged, KE); // Using C++20 aggregate initialization
 
                 con.clear(); // clear Voro++ container for next use
 
@@ -443,10 +445,17 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
                             charge_abs += std::abs(qc);
                         }
                         particles.emplace_back(dsk.index(), dsk.r().x(), dsk.r().y(), dsk.v().x(), dsk.v().y(), dsk.theta(), dsk.radius(), charge_global, charge_abs, dsk.isCaged()); // Using C++20 aggregate initialization
+                        charge_abs_total += charge_abs;
                     }
                     writer->write_snapshot(particles, time);
                 }
 
+                charge_transfers_normalized = static_cast<double>(charge_transfers*2)/(N*n_patch*sat); // each transfer involves 2 patches
+
+                file_minimal_data << time << "\t" << partic_caged << "\t" << KE << "\t" << E_yukawa << "\t" 
+                                  << charge_transfers << "\t" << charge_transfers_normalized << "\t" << charge_abs_total << "\n";
+                
+                results.emplace_back(partic_caged, KE, E_yukawa); // Using C++20 aggregate initialization
             }
             frame_id++;
         } // end record
@@ -459,18 +468,21 @@ AggregatedResult simulation(const config::Config& cfg, const int task_index) {
 
     // Compute mean values over specified time interval
     if (cfg.time.mean_time == 0.0)
-        return AggregatedResult{static_cast<double>(results.back().caged_particles), results.back().kinetic_energy, charges_normalized};
+        return AggregatedResult{static_cast<double>(results.back().caged_particles), results.back().kinetic_energy, 
+                                results.back().electrostatic_energy, charge_transfers_normalized, charge_abs_total};
 
     double partic_caged_mean = 0;
     double KE_mean = 0.0;
+    double Ep_mean = 0.0;
     int mean_frames = static_cast<int>(cfg.time.mean_time * fps); // Number of frame corresponding to the time interval
 
     for (std::size_t i = results.size() - mean_frames; i < results.size(); ++i)
     {
         partic_caged_mean += results[i].caged_particles;
         KE_mean += results[i].kinetic_energy;
+        Ep_mean += results[i].electrostatic_energy;
     }
-    return AggregatedResult{partic_caged_mean / mean_frames, KE_mean / mean_frames, charges_normalized};
+    return AggregatedResult{partic_caged_mean / mean_frames, KE_mean / mean_frames, Ep_mean / mean_frames, charge_transfers_normalized, charge_abs_total};
 }
 
 
