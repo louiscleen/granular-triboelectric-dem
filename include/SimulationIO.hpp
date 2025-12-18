@@ -210,7 +210,7 @@ public:
             while (std::getline(in, line)) {
                 ParticleData p;
                 std::istringstream iss(line);
-                if (!(iss >> p.index >> p.x >> p.y >> p.vx >> p.vy >> p.theta >> p.radius >> p.isCaged)) {
+                if (!(iss >> p.index >> p.x >> p.y >> p.vx >> p.vy >> p.theta >> p.radius >> p.charge_global >> p.charge_abs >> p.isCaged)) {
                     break; // fin de fichier ou erreur
                 }
                 particles.push_back(p);
