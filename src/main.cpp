@@ -250,19 +250,40 @@ int main(int argc, char* argv[])
             durations_by_rank[t.rank-1].rank = t.rank;
             durations_by_rank[t.rank-1].idle_time = total_duration - durations_by_rank[t.rank-1].total_duration;
         }
-    
+        double CPU_time = 0.0;
+        double CPU_wall_time = total_duration * (size -1);
+        double CPU_idle_time = 0.0;
+        for (const auto& info : durations_by_rank) {
+            CPU_time += info.total_duration;
+            CPU_idle_time += info.idle_time;
+        }
+        double efficiency = CPU_time / CPU_wall_time * 100.0;
+
         std::ofstream logs_file;
         std::string logs_file_name = cfg.output.directory + "/logs.txt";
         logs_file.open(logs_file_name);
         logs_file.precision(10);
 
-        logs_file << "Rank" << "\t" << "Number of Tasks" << "\t" << "Duration (s)" << "\t" << "Idle time (s)" << std::endl;
+        logs_file << "=== DEM Charge build-up with MPI ===\n"
+                    << "Job name: " << cfg.simulation.name << "\n"
+                    << "# Number of processes: " << size << " (1 master + " << size - 1 << " workers)." << "\n"
+                    << "# Total number of tasks: " << num_tasks << " (" << num_tasks_one_run << " per run)." << "\n"
+                    << "# Config loaded from: " << config_file << "\n"
+                    << "# Using global seed: " << cfg.simulation.seed_value << " (" << cfg.simulation.seed_source << ")\n"
+                    << "Total duration: " << total_duration << " seconds." << "\n"
+                    << "\n"
+                    << "Rank performance summary:\n"
+                    << "CPU time (sum of all worker durations): " << CPU_time << " seconds." << "\n"
+                    << "CPU wall time: " << CPU_wall_time << " seconds." << "\n"
+                    << "CPU idle time (sum of all worker idle times): " << CPU_idle_time << " seconds." << "\n"
+                    << "Efficiency (CPU time / CPU wall time): " << efficiency << " %" << "\n"
+                    << std::endl;
 
-        for (const auto& info : durations_by_rank) {
-            logs_file << info.rank << "\t" << info.num_tasks << "\t\t" << info.total_duration << "\t" << info.idle_time << std::endl;
-        }
-
-        logs_file << "\n" << "Total duration: " << total_duration << " seconds." << std::endl;
+        logs_file << "Rank performance details:\n"
+                    << "Rank" << "\t" << "Number of Tasks" << "\t" << "Duration (s)" << "\t" << "Idle time (s)" << std::endl;
+                for (const auto& info : durations_by_rank) {
+                    logs_file << info.rank << "\t" << info.num_tasks << "\t" << info.total_duration << "\t" << info.idle_time << std::endl;
+                }
 
         logs_file.close();
 
