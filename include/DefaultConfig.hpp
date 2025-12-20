@@ -45,7 +45,7 @@ N = 50 					# Number of particles
 initial_layout = "random"	
 min_rad = 0.0005 		# Minimum radius 				[m]
 max_rad = 0.0005 		# Maximum radius 				[m]
-density = 10000.0 		# Density				    	[kg/m³]
+density = 2500.0 		# Density				    	[kg/m³]
 # For bronze, use density = 9500 kg/m³, for glass density = 2500 kg/m³, for m≈0.0005kg density = 954929.0 kg/m³
 g = [0.0, 0.0, 0.0]		# Gravity						[m/s²]
 
@@ -84,7 +84,7 @@ f_top = 10 				# Top wall frequency 			[Hz]
 [contact]
 e = 0.9 				# Restitution coefficient 
 mu = 0.6				# Friction coefficient 
-kn = 10000.0 			# Normal stiffness  			[N/m]
+kn = 1000.0 			# Normal stiffness  			[N/m]
 
 [electrostatic]
 eps_r = 1.0             # Relative permittivity
@@ -102,6 +102,7 @@ directory = "data"      # Data directory
 
 # Controls how much simulation data is written to disk.
 # - "full":    save particle positions, velocities, states and auxiliary data in seperate .txt files for each frame (Useful for debugging by reproducing a simulation from a seed)
+# - "hybrid":  if n_runs=1, same as "full", if n_runs > 1, save full data for the first run and reduced data for the others
 # - "reduced": same as above but in an single binary file per simulation (all snapshots in one file)
 # - "minimal": save only the analysis in one global file & one minimal file per simulation (no particle data) 
 # Note that full & reduced data also include the minimal data.

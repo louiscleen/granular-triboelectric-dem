@@ -292,6 +292,13 @@ void get_parameters(Config& cfg, int task_index)
     cfg.patch.sat = cfg.patch.sat_list[sat_index];
     cfg.patch.q   = cfg.patch.q_list[q_index];
     cfg.simulation.current_run = run_index;
+
+    if (cfg.output.save_mode_str == "hybrid") {
+        if (run_index == 0)
+            cfg.output.save_mode = 2; // full
+        else
+            cfg.output.save_mode = 1; // reduced
+    }
 }
 
 } // namespace config
