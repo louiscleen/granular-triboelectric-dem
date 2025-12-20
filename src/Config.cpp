@@ -11,10 +11,7 @@
 
 namespace config {
 
-
-
-    
-Config from_toml(const toml::table& tbl, std::string seed, int rank)
+Config from_toml(const toml::table& tbl, std::string seed, std::string output_path, int rank)
 {
     Config cfg;
 
@@ -122,7 +119,7 @@ Config from_toml(const toml::table& tbl, std::string seed, int rank)
     cfg.electrostatic.lambda_e = electrostatic["lambda_e"].value_or(5e-4);
 
     auto output = tbl["output"];
-    cfg.output.directory = output["directory"].value_or("data/");
+    cfg.output.directory = output_path + output["directory"].value_or("data");
     cfg.output.save_mode_str = output["save_mode"].value_or("reduced");
     if (cfg.output.save_mode_str == "full")
         cfg.output.save_mode = 2;
@@ -139,7 +136,7 @@ Config from_toml(const toml::table& tbl, std::string seed, int rank)
 
 
 
-Config load_config(const std::string& content, std::string seed, int rank)
+Config load_config(const std::string& content, std::string seed, std::string output_path, int rank)
 {
     toml::table tbl;
     try {
@@ -152,11 +149,11 @@ Config load_config(const std::string& content, std::string seed, int rank)
         throw;
     }
 
-    return from_toml(tbl, seed, rank);
+    return from_toml(tbl, seed, output_path, rank);
 }
 
 
-Config load_config_file(const std::string& file_path, std::string seed, int rank)
+Config load_config_file(const std::string& file_path, std::string seed, std::string output_path, int rank)
 {
     toml::table tbl;
     try {
@@ -169,7 +166,7 @@ Config load_config_file(const std::string& file_path, std::string seed, int rank
         throw;
     }
 
-    return from_toml(tbl, seed, rank);
+    return from_toml(tbl, seed, output_path, rank);
 }
 
 

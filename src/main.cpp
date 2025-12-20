@@ -48,7 +48,8 @@ int main(int argc, char* argv[])
 
     std::string config_file = "";
     std::string temp_seed = "";  // Should not be used, only for CommandLineParser 
-    parsing_options(argc, argv, config_file, temp_seed, exit_requested, rank);
+    std::string output_path = "";
+    parsing_options(argc, argv, config_file, temp_seed, output_path, exit_requested, rank);
 
     // Broadcast exit_requested to all processes
     MPI_Bcast(&exit_requested, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -75,7 +76,7 @@ int main(int argc, char* argv[])
     config::Config cfg;
 
     try {
-        cfg = config::load_config(config_content, temp_seed, rank);
+        cfg = config::load_config(config_content, temp_seed, output_path, rank);
     }
     catch (const toml::parse_error& err) {
         if (rank == 0) {
@@ -108,6 +109,7 @@ int main(int argc, char* argv[])
         std::cout << "Job name: " << cfg.simulation.name << std::endl;
         std::cout << "# Number of processes: " << size << " (1 master + " << size - 1 << " workers)." << std::endl;
         std::cout << "# Config loaded from: " << config_file << std::endl;
+        std::cout << "# Output directory: " << cfg.output.directory << std::endl;
         std::cout << "# Using global seed: " << cfg.simulation.seed_value << " (" << cfg.simulation.seed_source << ")" << std::endl;
 
         // ----- MASTER -----

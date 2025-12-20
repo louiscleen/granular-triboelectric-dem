@@ -98,8 +98,11 @@ lambda_e = 5e-4 		# Screening length      		[m]
 #             Output
 #########################################
 [output]
-directory = "data"      # Data directory 
-
+directory = "data"      # Data directory name
+                        # The output directory will be created inside the current working directory. To specify a different path, use --output command line argument.
+                        # Example: --output $GLOBALSCRATCH/$SLURM_JOB_ID
+                        # Note that if the folder already exists, the program will stop to avoid overwriting existing data (the directory is always created by the program)
+                        
 # Controls how much simulation data is written to disk.
 # - "full":    save particle positions, velocities, states and auxiliary data in seperate .txt files for each frame (Useful for debugging by reproducing a simulation from a seed)
 # - "hybrid":  if n_runs=1, same as "full", if n_runs > 1, save full data for the first run and reduced data for the others

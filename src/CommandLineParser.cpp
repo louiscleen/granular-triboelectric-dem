@@ -2,12 +2,13 @@
 #include "Config.hpp"
 #include "DefaultConfig.hpp"
 #include <iostream>
+#include <string>
 #include <filesystem>
 #include <cxxopts.hpp>
 #include <mpi.h>
 
 
-void parsing_options(int argc, char* argv[], std::string& config_file, std::string& seed, int& exit_requested, int rank)
+void parsing_options(int argc, char* argv[], std::string& config_file, std::string& seed, std::string& output_path, int& exit_requested, int rank)
 {
     cxxopts::Options options("DEM Charge build-up", "A Discrete Element Method simulation for charge build-up.");
 
@@ -16,10 +17,12 @@ void parsing_options(int argc, char* argv[], std::string& config_file, std::stri
         ("v, version", "Display version")
         ("c,config", "Config file (default: config.toml)", cxxopts::value<std::string>()->default_value(std::string(DEFAULT_CONFIG_FILE)))
         ("s,seed", "Global random seed for all MPI processes", cxxopts::value<unsigned int>())
+        ("o, output", "Output path (default: current working directory) where 'directory' from config file will be created", cxxopts::value<std::string>()->default_value(""))
         //("e, ETA", "Estimated time of arrival based on number of MPI processes")
     ;
 
     auto parsedArgs = options.parse(argc, argv);
+
     config_file = parsedArgs["config"].as<std::string>();
 
     if (parsedArgs.count("seed")) {
@@ -51,13 +54,18 @@ void parsing_options(int argc, char* argv[], std::string& config_file, std::stri
             config::write_default_config();
 
             std::cout << "You can now modify the file and restart the program." << std::endl;
-            exit_requested = true;
+            exit_requested = 1;
             return;
         }
         else if (!std::filesystem::exists(config_file)) {
             std::cerr << "Config file not found: " << config_file << std::endl;
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
+    }
+
+    output_path = parsedArgs["output"].as<std::string>();
+    if (!output_path.empty() && output_path.back() != '/' && output_path.back() != '\"' && output_path.back() != '\\') {
+        output_path += '/';
     }
 
     // if (parsedArgs.count("ETA")) {

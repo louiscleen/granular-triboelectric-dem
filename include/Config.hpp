@@ -110,9 +110,9 @@ struct Config
 
 
 
-Config from_toml(const toml::table& tbl, std::string seed = "", int rank = 0); // Lit config.toml et remplit une structure Config.
-Config load_config(const std::string& content, std::string seed = "", int rank = 0);
-Config load_config_file(const std::string& path, std::string seed = "", int rank = 0);
+Config from_toml(const toml::table& tbl, std::string seed = "", std::string output_path = "", int rank = 0); // Lit config.toml et remplit une structure Config.
+Config load_config(const std::string& content, std::string seed = "", std::string output_path = "", int rank = 0);
+Config load_config_file(const std::string& path, std::string seed = "", std::string output_path = "", int rank = 0);
 std::vector<double> get_double_values(const toml::node_view<const toml::node>& node, int rank = 0);
 std::vector<int> get_int_values(const toml::node_view<const toml::node>& node, int rank = 0);
 void get_parameters(Config& cfg, int task_index); // Récupère les paramètres pour un run

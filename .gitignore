@@ -63,3 +63,7 @@ Thumbs.db
 data/
 *.bin
 *.dat
+
+# Logs (Slurm, etc.)
+logs/
+*.log
