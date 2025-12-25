@@ -1,0 +1,9 @@
+﻿BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++20
+
+# Indentation & mise en forme générale
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
