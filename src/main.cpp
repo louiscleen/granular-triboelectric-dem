@@ -16,8 +16,8 @@
 #include "ProgressTracker.hpp"
 #include "Simulation.hpp"
 
-using clock = std::chrono::steady_clock;
-using duration = clock::duration;
+using steady_clock = std::chrono::steady_clock;
+using duration = steady_clock::duration;
 
 struct TaskInfo {
     int index;
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
             num_tasks, {-1., -1., -1., -1., -1.}); // Pour contenir moyennes des résultats
         std::vector<TaskInfo> durations(num_tasks, {-1, -1, duration::zero()});
         ProgressTracker tracker(num_tasks, size - 1, std::cout, std::chrono::minutes(10),
-                                0.01); // rapport toutes les 500 ms, alpha=0.01
+                                0.1); // rapport toutes les 500 ms, alpha=0.01
 
         MPI_Status status;
 
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        auto end_time = clock::now();
+        auto end_time = steady_clock::now();
         auto total_duration = end_time - start_time;
 
         std::cout << "All tasks completed !\nTotal duration: "
@@ -330,9 +330,9 @@ int main(int argc, char *argv[]) {
             // << cfg.simulation.current_run << " N=" << cfg.particles.N << " sat=" << cfg.patch.sat
             // << " q=" << cfg.patch.q << std::endl;
 
-            auto task_start_time = clock::now();
+            auto task_start_time = steady_clock::now();
             AggregatedResult res = simulation(cfg, task_index);
-            auto task_end_time = clock::now();
+            auto task_end_time = steady_clock::now();
             int64_t task_duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                            task_end_time - task_start_time)
                                            .count();

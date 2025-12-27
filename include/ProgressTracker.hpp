@@ -45,13 +45,13 @@ class ProgressTracker {
     }
 
   private:
-    using clock = std::chrono::steady_clock;
-    using duration = clock::duration;
+    using steady_clock = std::chrono::steady_clock;
+    using duration = steady_clock::duration;
 
     // ---- Configuration ----
     const int tasks_total_;
     const int n_workers_;
-    const clock::time_point start_time_ = clock::now();
+    const steady_clock::time_point start_time_ = steady_clock::now();
     std::ostream &os_;
     const duration report_interval_;
     const double alpha;
@@ -60,7 +60,7 @@ class ProgressTracker {
                                                         // fournisse un ETA (car pas fiable avant)
 
     // ---- State ----
-    clock::time_point time_at_last_report_ = clock::now();
+    steady_clock::time_point time_at_last_report_ = steady_clock::now();
     int tasks_completed_ = 0;
     int tasks_completed_at_last_report_ = 0;
     duration max_task_duration_ = duration::zero();
@@ -117,14 +117,14 @@ class ProgressTracker {
         if (tasks_completed_ == tasks_total_) {
             return true;
         }
-        return (clock::now() - time_at_last_report_ >= report_interval_ &&
+        return (steady_clock::now() - time_at_last_report_ >= report_interval_ &&
                 tasks_completed_ > tasks_completed_at_last_report_);
     }
 
     void print_report() const {
         int progress_percent = static_cast<int>(100.0 * tasks_completed_ / tasks_total_);
         const int tasks_active = std::min(n_workers_, tasks_total_ - tasks_completed_);
-        const auto elapsed = clock::now() - start_time_;
+        const auto elapsed = steady_clock::now() - start_time_;
         const auto eta = compute_ETA();
 
         os_ << "[" << std::setw(3) << progress_percent << "%] " << std::setw(5) << tasks_completed_
