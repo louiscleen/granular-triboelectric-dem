@@ -1,53 +1,50 @@
-#include <toml.hpp>
 #include <mpi.h>
+#include <toml.hpp>
 
+#include <algorithm>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <filesystem>
-#include <chrono>
 
-#include "Constants.hpp"
 #include "CommandLineParser.hpp"
 #include "Config.hpp"
-#include "Simulation.hpp"
+#include "Constants.hpp"
 #include "Functions.hpp"
+#include "ProgressTracker.hpp"
+#include "Simulation.hpp"
 
+using clock = std::chrono::steady_clock;
+using duration = clock::duration;
 
-struct TaskInfo
-{
+struct TaskInfo {
     int index;
     int rank;
-    double duration;
+    duration time;
 };
 
-struct RankInfo
-{
+struct RankInfo {
     int rank;
     int num_tasks;
-    double total_duration;
-    double idle_time;
+    duration total_time;
+    duration idle_time;
 };
 
-
-
-
-
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     // Initializing MPI
     MPI_Init(&argc, &argv);
     int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);       // rank --> id du processus [0, size-1]
-    MPI_Comm_size(MPI_COMM_WORLD, &size);       // size --> nombre de processus
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // rank --> id du processus [0, size-1]
+    MPI_Comm_size(MPI_COMM_WORLD, &size); // size --> nombre de processus
     int exit_requested = 0;
 
     if (rank == 0)
-        std::cout << "=== DEM Charge build-up with MPI ===" << std::endl;
+        std::cout << "=== DEM Charge build-up with MPI (v" << VERSION << ") ===" << std::endl;
 
     std::string config_file = "";
-    std::string temp_seed = "";  // Should not be used, only for CommandLineParser 
+    std::string temp_seed = ""; // Should not be used, only for CommandLineParser
     std::string output_path = "";
     parsing_options(argc, argv, config_file, temp_seed, output_path, exit_requested, rank);
 
@@ -58,13 +55,12 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-
     std::string config_content;
 
     if (rank == 0) {
         std::ifstream f(config_file);
         config_content.assign((std::istreambuf_iterator<char>(f)),
-                    std::istreambuf_iterator<char>());
+                              std::istreambuf_iterator<char>());
     }
 
     int config_content_size = config_content.size();
@@ -77,8 +73,7 @@ int main(int argc, char* argv[])
 
     try {
         cfg = config::load_config(config_content, temp_seed, output_path, rank);
-    }
-    catch (const toml::parse_error& err) {
+    } catch (const toml::parse_error &err) {
         if (rank == 0) {
             std::cerr << "Config loading failed: " << config_file << std::endl;
         }
@@ -88,10 +83,6 @@ int main(int argc, char* argv[])
     // Broadcast the global seed to all processes
     MPI_Bcast(&cfg.simulation.seed_value, 1, MPI_UINT32_T, 0, MPI_COMM_WORLD);
 
-
-
-
-
     // =========================================================================
     //  Master-Worker Task Allocation
     //  (Simple version, master does not perform simulations)
@@ -100,33 +91,41 @@ int main(int argc, char* argv[])
     if (rank == 0) {
 
         if (size < 2) {
-            std::cerr << "This program requires at least 2 MPI processes (one master and at least one worker)." << std::endl;
+            std::cerr << "This program requires at least 2 MPI processes (one master and at least "
+                         "one worker)."
+                      << std::endl;
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-        } 
+        }
 
-        auto start_time = std::chrono::high_resolution_clock::now();
-        
-        std::cout << "Job name: " << cfg.simulation.name << std::endl;
-        std::cout << "# Number of processes: " << size << " (1 master + " << size - 1 << " workers)." << std::endl;
+        auto start_time = std::chrono::steady_clock::now();
+
+        std::cout << "# Job name: " << cfg.simulation.name << std::endl;
+        std::cout << "# Number of processes: " << size << " (1 master + " << size - 1
+                  << " workers)." << std::endl;
         std::cout << "# Config loaded from: " << config_file << std::endl;
         std::cout << "# Output directory: " << cfg.output.directory << std::endl;
-        std::cout << "# Using global seed: " << cfg.simulation.seed_value << " (" << cfg.simulation.seed_source << ")" << std::endl;
+        std::cout << "# Using global seed: " << cfg.simulation.seed_value << " ("
+                  << cfg.simulation.seed_source << ")" << std::endl;
 
         // ----- MASTER -----
-        int num_tasks = cfg.particles.N_list.size() * cfg.patch.sat_list.size() * cfg.patch.q_list.size() * cfg.simulation.n_runs;
-        int num_tasks_one_run = cfg.particles.N_list.size() * cfg.patch.sat_list.size() * cfg.patch.q_list.size();
-        std::cout << "# Total number of tasks: " << num_tasks << " (" << num_tasks_one_run << " per run)." << "\n" << std::endl;
+        int num_tasks = cfg.particles.N_list.size() * cfg.patch.sat_list.size() *
+                        cfg.patch.q_list.size() * cfg.simulation.n_runs;
+        int num_tasks_one_run =
+            cfg.particles.N_list.size() * cfg.patch.sat_list.size() * cfg.patch.q_list.size();
+        std::cout << "# Total number of tasks: " << num_tasks << " (" << num_tasks_one_run
+                  << " per run)." << "\n"
+                  << std::endl;
 
         // Copier le fichier de configuration dans le dossier de sortie
         if (std::filesystem::exists(cfg.output.directory)) {
-            std::cerr << "Error: the folder: \"" << cfg.output.directory << "\" already exists." << std::endl;
+            std::cerr << "Error: the folder: \"" << cfg.output.directory << "\" already exists."
+                      << std::endl;
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
         try {
             std::filesystem::create_directories(cfg.output.directory); // si le dossier n'existe pas
             std::filesystem::copy_file(config_file, cfg.output.directory + "/" + config_file);
-        }
-        catch (const std::filesystem::filesystem_error& e) {
+        } catch (const std::filesystem::filesystem_error &e) {
             std::cerr << "Error: " << e.what() << std::endl;
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
@@ -147,56 +146,62 @@ int main(int argc, char* argv[])
             std::filesystem::create_directories(destination_layout_dir);
         }
 
-
         int next_task = 0;
         std::vector<int> task_indices(num_tasks, -1);
-        std::vector<AggregatedResult> results(num_tasks, {-1., -1., -1., -1., -1.}); // Pour contenir moyennes des résultats
-        std::vector<TaskInfo> durations(num_tasks, {-1, -1, 0.0});
+        std::vector<AggregatedResult> results(
+            num_tasks, {-1., -1., -1., -1., -1.}); // Pour contenir moyennes des résultats
+        std::vector<TaskInfo> durations(num_tasks, {-1, -1, duration::zero()});
+        ProgressTracker tracker(num_tasks, size - 1, std::cout, std::chrono::minutes(10),
+                                0.01); // rapport toutes les 500 ms, alpha=0.01
 
         MPI_Status status;
 
         // envoyer une tâche initiale à chaque worker
         for (int worker = 1; worker < size && next_task < num_tasks; ++worker) {
-            MPI_Send(&next_task, 1, MPI_INT, worker, TAG_WORK, MPI_COMM_WORLD); // envoyer l'indice de la tâche
+            MPI_Send(&next_task, 1, MPI_INT, worker, TAG_WORK,
+                     MPI_COMM_WORLD); // envoyer l'indice de la tâche
             next_task++;
         }
-        
-
 
         int tasks_completed = 0;
 
         // boucle dynamique
         while (tasks_completed < num_tasks) {
 
-            std::cout << "Remaining tasks: " << num_tasks - tasks_completed << " ..." << std::endl;
-
             int task_index = -1;
             AggregatedResult result;
-            double task_duration = 0.0;
+            int64_t task_duration_ns = 0.0;
 
             // Réception de l'indice de tâche correspondant
             MPI_Recv(&task_index, 1, MPI_INT, MPI_ANY_SOURCE, TAG_RESULT, MPI_COMM_WORLD, &status);
-            int worker = status.MPI_SOURCE;
+            int worker_rank = status.MPI_SOURCE;
 
             // Réception d'un résultat et de la durée de la tâche
-            MPI_Recv(&result, sizeof(AggregatedResult), MPI_BYTE, worker, TAG_RESULT, MPI_COMM_WORLD, &status);
-            MPI_Recv(&task_duration, 1, MPI_DOUBLE, worker, TAG_RESULT, MPI_COMM_WORLD, &status);
-            
+            MPI_Recv(&result, sizeof(AggregatedResult), MPI_BYTE, worker_rank, TAG_RESULT,
+                     MPI_COMM_WORLD, &status);
+            MPI_Recv(&task_duration_ns, 1, MPI_INT64_T, worker_rank, TAG_RESULT, MPI_COMM_WORLD,
+                     &status);
+
+            duration task_duration =
+                std::chrono::duration_cast<duration>(std::chrono::nanoseconds{task_duration_ns});
+
+            tracker.update(worker_rank - 1,
+                           task_duration); // worker-1 car les workers commencent à 1
+
             task_indices[task_index] = task_index;
             results[task_index] = result;
             durations[task_index].index = task_index;
-            durations[task_index].rank = worker;
-            durations[task_index].duration = task_duration;
- 
+            durations[task_index].rank = worker_rank;
+            durations[task_index].time = task_duration;
             tasks_completed++;
 
             // S'il reste des tâches, on envoie la suivante à ce worker
             if (next_task < num_tasks) {
-                MPI_Send(&next_task, 1, MPI_INT, worker, TAG_WORK, MPI_COMM_WORLD);
+                MPI_Send(&next_task, 1, MPI_INT, worker_rank, TAG_WORK, MPI_COMM_WORLD);
                 next_task++;
             } else {
                 // Sinon, on envoie un message d'arrêt
-                MPI_Send(nullptr, 0, MPI_INT, worker, TAG_STOP, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, worker_rank, TAG_STOP, MPI_COMM_WORLD);
             }
 
             //
@@ -204,62 +209,69 @@ int main(int argc, char* argv[])
         }
 
         if (num_tasks < size - 1) { // -1 car le master n'est pas un worker
-            // Si il y a plus de workers que de tâches, on doit envoyer un message d'arrêt aux workers inactifs
+            // Si il y a plus de workers que de tâches, on doit envoyer un message d'arrêt aux
+            // workers inactifs
             for (int worker = num_tasks + 1; worker < size; ++worker) {
                 MPI_Send(nullptr, 0, MPI_INT, worker, TAG_STOP, MPI_COMM_WORLD);
             }
         }
 
-        auto end_time =  std::chrono::high_resolution_clock::now();
-        double total_duration = std::chrono::duration<double> (end_time - start_time).count();
+        auto end_time = clock::now();
+        auto total_duration = end_time - start_time;
 
-        std::cout << "All tasks completed !\nTotal duration: " << total_duration << " seconds." << std::endl;
+        std::cout << "All tasks completed !\nTotal duration: "
+                  << std::chrono::duration<double>(total_duration).count() << " seconds."
+                  << std::endl;
         // Afficher les résultats
 
         std::ofstream result_file;
         std::string result_file_name = cfg.output.directory + "/aggregated_results.txt";
         result_file.open(result_file_name);
         result_file.precision(10);
-        config::Config param_cfg = cfg; // copie de la config pour modifier les paramètres de chaque tâche
+        config::Config param_cfg =
+            cfg; // copie de la config pour modifier les paramètres de chaque tâche
 
-        result_file << "task" << "\t" << "#run" << "\t" << "N" << "\t" << "sat" << "\t" << "q" << "\t" 
-                    << "mean_Nc" << "\t" << "mean_KE"  << "\t" << "mean_Ep" << "\t" << "charge_transfers_normalized" << "\t" << "charge_abs_total" << "\t" << "duration" << std::endl;
+        result_file << "task" << "\t" << "#run" << "\t" << "N" << "\t" << "sat" << "\t" << "q"
+                    << "\t"
+                    << "mean_Nc" << "\t" << "mean_KE" << "\t" << "mean_Ep" << "\t"
+                    << "charge_transfers_normalized" << "\t" << "charge_abs_total" << "\t"
+                    << "duration" << std::endl;
 
         for (int i = 0; i < num_tasks; ++i) {
             // Récupérer les paramètres correspondants à la tâche i
             config::get_parameters(param_cfg, task_indices[i]);
 
-            result_file << task_indices[i] << "\t"
-                        << param_cfg.simulation.current_run << "\t"
-                        << param_cfg.particles.N << "\t"
-                        << param_cfg.patch.sat << "\t"
-                        << param_cfg.patch.q << "\t"
-                        << results[i].mean_caged_particles << "\t"
+            result_file << task_indices[i] << "\t" << param_cfg.simulation.current_run << "\t"
+                        << param_cfg.particles.N << "\t" << param_cfg.patch.sat << "\t"
+                        << param_cfg.patch.q << "\t" << results[i].mean_caged_particles << "\t"
                         << results[i].mean_kinetic_energy << "\t"
                         << results[i].mean_electrostatic_energy << "\t"
                         << results[i].charge_transfers_normalized << "\t"
                         << results[i].charge_abs_total << "\t"
-                        << durations[i].duration << "\n";
+                        << std::chrono::duration<double>(durations[i].time).count() << "\n";
         }
         result_file.close();
 
-        std::vector<RankInfo> durations_by_rank(size-1, {-1, 0, 0.0, 0.0}); // size-1 car le master n'est pas un worker
+        std::vector<RankInfo> durations_by_rank(
+            size - 1, {-1, 0, duration::zero(),
+                       duration::zero()}); // size-1 car le master n'est pas un worker
 
-
-        for (const auto& t : durations) {
-            durations_by_rank[t.rank-1].total_duration += t.duration;
-            durations_by_rank[t.rank-1].num_tasks += 1;
-            durations_by_rank[t.rank-1].rank = t.rank;
-            durations_by_rank[t.rank-1].idle_time = total_duration - durations_by_rank[t.rank-1].total_duration;
+        for (const auto &t : durations) {
+            durations_by_rank[t.rank - 1].total_time += t.time;
+            durations_by_rank[t.rank - 1].num_tasks += 1;
+            durations_by_rank[t.rank - 1].rank = t.rank;
+            durations_by_rank[t.rank - 1].idle_time =
+                total_duration - durations_by_rank[t.rank - 1].total_time;
         }
-        double CPU_time = 0.0;
-        double CPU_wall_time = total_duration * (size -1);
-        double CPU_idle_time = 0.0;
-        for (const auto& info : durations_by_rank) {
-            CPU_time += info.total_duration;
+        duration CPU_time = duration::zero();
+        duration CPU_wall_time = total_duration * (size - 1);
+        duration CPU_idle_time = duration::zero();
+        for (const auto &info : durations_by_rank) {
+            CPU_time += info.total_time;
             CPU_idle_time += info.idle_time;
         }
-        double efficiency = CPU_time / CPU_wall_time * 100.0;
+        double efficiency = std::chrono::duration<double>(CPU_time).count() /
+                            (std::chrono::duration<double>(CPU_wall_time).count()) * 100.0;
 
         std::ofstream logs_file;
         std::string logs_file_name = cfg.output.directory + "/logs.txt";
@@ -267,25 +279,35 @@ int main(int argc, char* argv[])
         logs_file.precision(10);
 
         logs_file << "=== DEM Charge build-up with MPI ===\n"
-                    << "Job name: " << cfg.simulation.name << "\n"
-                    << "# Number of processes: " << size << " (1 master + " << size - 1 << " workers)." << "\n"
-                    << "# Total number of tasks: " << num_tasks << " (" << num_tasks_one_run << " per run)." << "\n"
-                    << "# Config loaded from: " << config_file << "\n"
-                    << "# Using global seed: " << cfg.simulation.seed_value << " (" << cfg.simulation.seed_source << ")\n"
-                    << "Total duration: " << total_duration << " seconds." << "\n"
-                    << "\n"
-                    << "Rank performance summary:\n"
-                    << "CPU time (sum of all worker durations): " << CPU_time << " seconds." << "\n"
-                    << "CPU wall time: " << CPU_wall_time << " seconds." << "\n"
-                    << "CPU idle time (sum of all worker idle times): " << CPU_idle_time << " seconds." << "\n"
-                    << "Efficiency (CPU time / CPU wall time): " << efficiency << " %" << "\n"
-                    << std::endl;
+                  << "Job name: " << cfg.simulation.name << "\n"
+                  << "# Number of processes: " << size << " (1 master + " << size - 1
+                  << " workers)." << "\n"
+                  << "# Total number of tasks: " << num_tasks << " (" << num_tasks_one_run
+                  << " per run)." << "\n"
+                  << "# Config loaded from: " << config_file << "\n"
+                  << "# Using global seed: " << cfg.simulation.seed_value << " ("
+                  << cfg.simulation.seed_source << ")\n"
+                  << "Total duration: " << std::chrono::duration<double>(total_duration).count()
+                  << " seconds." << "\n"
+                  << "\n"
+                  << "Rank performance summary:\n"
+                  << "CPU time (sum of all worker durations): "
+                  << std::chrono::duration<double>(CPU_time).count() << " seconds." << "\n"
+                  << "CPU wall time: " << std::chrono::duration<double>(CPU_wall_time).count()
+                  << " seconds." << "\n"
+                  << "CPU idle time (sum of all worker idle times): "
+                  << std::chrono::duration<double>(CPU_idle_time).count() << " seconds." << "\n"
+                  << "Efficiency (CPU time / CPU wall time): " << efficiency << " %" << "\n"
+                  << std::endl;
 
         logs_file << "Rank performance details:\n"
-                    << "Rank" << "\t" << "Number of Tasks" << "\t" << "Duration (s)" << "\t" << "Idle time (s)" << std::endl;
-                for (const auto& info : durations_by_rank) {
-                    logs_file << info.rank << "\t" << info.num_tasks << "\t" << info.total_duration << "\t" << info.idle_time << std::endl;
-                }
+                  << "Rank" << "\t" << "Number of Tasks" << "\t" << "Duration (s)" << "\t"
+                  << "Idle time (s)" << std::endl;
+        for (const auto &info : durations_by_rank) {
+            logs_file << info.rank << "\t" << info.num_tasks << "\t"
+                      << std::chrono::duration<double>(info.total_time).count() << "\t"
+                      << std::chrono::duration<double>(info.idle_time).count() << std::endl;
+        }
 
         logs_file.close();
 
@@ -296,30 +318,36 @@ int main(int argc, char* argv[])
         while (true) {
             int task_index = -1;
             MPI_Recv(&task_index, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-            if (status.MPI_TAG == TAG_STOP) 
+            if (status.MPI_TAG == TAG_STOP)
                 break; // sortir de la boucle
 
             config::get_parameters(cfg, task_index);
 
-            // POUR LOG std::cout << "Process " << rank << " received task " << task_index << " param: " << "current_run=" << cfg.simulation.current_run << " N=" << cfg.particles.N << " sat=" << cfg.patch.sat << " q=" << cfg.patch.q << std::endl; 
-            // std::cout << "Process " << rank << " received task " << task_index << " param: " << "current_run=" << cfg.simulation.current_run << " N=" << cfg.particles.N << " sat=" << cfg.patch.sat << " q=" << cfg.patch.q << std::endl; 
+            // POUR LOG std::cout << "Process " << rank << " received task " << task_index << "
+            // param: " << "current_run=" << cfg.simulation.current_run << " N=" << cfg.particles.N
+            // << " sat=" << cfg.patch.sat << " q=" << cfg.patch.q << std::endl; std::cout <<
+            // "Process " << rank << " received task " << task_index << " param: " << "current_run="
+            // << cfg.simulation.current_run << " N=" << cfg.particles.N << " sat=" << cfg.patch.sat
+            // << " q=" << cfg.patch.q << std::endl;
 
-            auto task_start_time = std::chrono::high_resolution_clock::now();
+            auto task_start_time = clock::now();
             AggregatedResult res = simulation(cfg, task_index);
-            auto task_end_time =  std::chrono::high_resolution_clock::now();
-            double task_duration = std::chrono::duration<double> (task_end_time - task_start_time).count();
-     
+            auto task_end_time = clock::now();
+            int64_t task_duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                           task_end_time - task_start_time)
+                                           .count();
 
             // notifier le master que la tâche est terminée
             MPI_Send(&task_index, 1, MPI_INT, 0, TAG_RESULT, MPI_COMM_WORLD);
-            MPI_Send(&res, sizeof(AggregatedResult), MPI_BYTE, 0, TAG_RESULT, MPI_COMM_WORLD);
-            MPI_Send(&task_duration, 1, MPI_DOUBLE, 0, TAG_RESULT, MPI_COMM_WORLD);
+            MPI_Send(&res, sizeof(AggregatedResult), MPI_BYTE, 0, TAG_RESULT,
+                     MPI_COMM_WORLD); // A modifier pour éviter le MPI_BYTE
+            MPI_Send(&task_duration_ns, 1, MPI_INT64_T, 0, TAG_RESULT, MPI_COMM_WORLD);
 
-            // std::cout << "Process " << rank << " sent completion notification for task " << task_index << std::endl;
-            // POUR LOG : std::cout << "Process " << rank << " sent completion notification for task " << task_index << std::endl;
+            // std::cout << "Process " << rank << " sent completion notification for task " <<
+            // task_index << std::endl; POUR LOG : std::cout << "Process " << rank << " sent
+            // completion notification for task " << task_index << std::endl;
         }
     }
-
 
     MPI_Finalize(); // Fermeture de MPI
     return 0;
