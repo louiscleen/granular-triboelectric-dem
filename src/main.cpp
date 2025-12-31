@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -147,7 +149,13 @@ int main(int argc, char *argv[]) {
         }
 
         int next_task = 0;
-        std::vector<int> task_indices(num_tasks, -1);
+
+        std::vector<int> task_indices(num_tasks);
+        std::iota(task_indices.begin(), task_indices.end(), 0);
+
+        std::shuffle(task_indices.begin(), task_indices.end(),
+                     std::mt19937{cfg.simulation.seed_value});
+
         std::vector<AggregatedResult> results(
             num_tasks, {-1., -1., -1., -1., -1.}); // Pour contenir moyennes des résultats
         std::vector<TaskInfo> durations(num_tasks, {-1, -1, duration::zero()});
@@ -158,7 +166,7 @@ int main(int argc, char *argv[]) {
 
         // envoyer une tâche initiale à chaque worker
         for (int worker = 1; worker < size && next_task < num_tasks; ++worker) {
-            MPI_Send(&next_task, 1, MPI_INT, worker, TAG_WORK,
+            MPI_Send(&task_indices[next_task], 1, MPI_INT, worker, TAG_WORK,
                      MPI_COMM_WORLD); // envoyer l'indice de la tâche
             next_task++;
         }
@@ -187,8 +195,6 @@ int main(int argc, char *argv[]) {
 
             tracker.update(worker_rank - 1,
                            task_duration); // worker-1 car les workers commencent à 1
-
-            task_indices[task_index] = task_index;
             results[task_index] = result;
             durations[task_index].index = task_index;
             durations[task_index].rank = worker_rank;
@@ -197,7 +203,8 @@ int main(int argc, char *argv[]) {
 
             // S'il reste des tâches, on envoie la suivante à ce worker
             if (next_task < num_tasks) {
-                MPI_Send(&next_task, 1, MPI_INT, worker_rank, TAG_WORK, MPI_COMM_WORLD);
+                MPI_Send(&task_indices[next_task], 1, MPI_INT, worker_rank, TAG_WORK,
+                         MPI_COMM_WORLD);
                 next_task++;
             } else {
                 // Sinon, on envoie un message d'arrêt
@@ -239,9 +246,9 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < num_tasks; ++i) {
             // Récupérer les paramètres correspondants à la tâche i
-            config::get_parameters(param_cfg, task_indices[i]);
+            config::get_parameters(param_cfg, i);
 
-            result_file << task_indices[i] << "\t" << param_cfg.simulation.current_run << "\t"
+            result_file << i << "\t" << param_cfg.simulation.current_run << "\t"
                         << param_cfg.particles.N << "\t" << param_cfg.patch.sat << "\t"
                         << param_cfg.patch.q << "\t" << results[i].mean_caged_particles << "\t"
                         << results[i].mean_kinetic_energy << "\t"
