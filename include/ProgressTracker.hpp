@@ -20,7 +20,7 @@ class ProgressTracker {
                     std::chrono::steady_clock::duration report_interval = default_report_interval,
                     double alpha = 0.001)
         : tasks_total_(tasks_total), n_workers_(n_workers), os_(os),
-          report_interval_(report_interval), alpha(alpha), task_duration_per_worker_(n_workers),
+          report_interval_(report_interval), alpha_(alpha), task_duration_per_worker_(n_workers),
           sizes_(n_workers, 0) {
         print_report();
     }
@@ -54,7 +54,7 @@ class ProgressTracker {
     const steady_clock::time_point start_time_ = steady_clock::now();
     std::ostream &os_;
     const duration report_interval_;
-    const double alpha;
+    const double alpha_;
     const double warmup_threshold_ =
         std::max(2.0 * n_workers_, 0.1 * tasks_total_); // Nombre de tâches minimum avant que l'on
                                                         // fournisse un ETA (car pas fiable avant)
@@ -100,7 +100,7 @@ class ProgressTracker {
         if (ema_ == 0.0) {
             ema_ = throughput;
         } else {
-            ema_ = alpha * throughput + (1.0 - alpha) * ema_;
+            ema_ = alpha_ * throughput + (1.0 - alpha_) * ema_;
         }
     }
 
