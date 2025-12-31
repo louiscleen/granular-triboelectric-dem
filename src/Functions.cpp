@@ -28,14 +28,13 @@ uint32_t generate_seed() {
 
 void place_grains(std::vector<Disk> &grains, const config::Config &cfg, const int task_index) {
 
+    grains.clear();
+    grains.reserve(cfg.particles.N);
+
     std::seed_seq seq{static_cast<uint32_t>(cfg.simulation.seed_value),
                       static_cast<uint32_t>(task_index)};
     std::mt19937 gen(seq);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-    double x, y, vx, vy;
-    int number_of_placed_grains = 0;
-    int number_of_overlaps;
 
     // Global enforcement of p
     std::vector<bool> all_patches;
@@ -46,6 +45,7 @@ void place_grains(std::vector<Disk> &grains, const config::Config &cfg, const in
         const int n_acceptor_patches = total_patches - n_donor_patches;
 
         // Create a vector with the appropriate number of donor (true) and acceptor (false) patches
+        all_patches.reserve(total_patches);
         all_patches.insert(all_patches.end(), n_donor_patches, true);     // Donor patches
         all_patches.insert(all_patches.end(), n_acceptor_patches, false); // Acceptor patches
 
@@ -54,54 +54,77 @@ void place_grains(std::vector<Disk> &grains, const config::Config &cfg, const in
     }
 
     // place grains
-    while (number_of_placed_grains < cfg.particles.N) {
-        number_of_overlaps = 0;
-        double radius =
-            cfg.particles.min_rad + dist(gen) * (cfg.particles.max_rad - cfg.particles.min_rad);
+    bool static_configuration = true;
+    do {
+        grains.clear();
+        int number_of_placed_grains = 0;
+        while (number_of_placed_grains < cfg.particles.N) {
+            bool overlaps = false;
+            double radius =
+                cfg.particles.min_rad + dist(gen) * (cfg.particles.max_rad - cfg.particles.min_rad);
 
-        x = -cfg.boundaries.lx / 2. + radius + dist(gen) * (cfg.boundaries.lx - 2. * radius);
+            double x =
+                -cfg.boundaries.lx / 2. + radius + dist(gen) * (cfg.boundaries.lx - 2. * radius);
+            double y;
 
-        if (cfg.boundaries.oscillation.shape == 1 || cfg.boundaries.oscillation.shape == 2)
-            y = -cfg.boundaries.ly / 2. + cfg.boundaries.oscillation.correction + radius +
-                dist(gen) *
-                    (cfg.boundaries.ly - 2. * radius - 2. * cfg.boundaries.oscillation.correction);
-        else
-            y = -cfg.boundaries.ly / 2. + radius + dist(gen) * (cfg.boundaries.ly - 2. * radius);
+            if (cfg.boundaries.oscillation.shape == 1 || cfg.boundaries.oscillation.shape == 2)
+                y = -cfg.boundaries.ly / 2. + cfg.boundaries.oscillation.correction + radius +
+                    dist(gen) * (cfg.boundaries.ly - 2. * radius -
+                                 2. * cfg.boundaries.oscillation.correction);
+            else
+                y = -cfg.boundaries.ly / 2. + radius +
+                    dist(gen) * (cfg.boundaries.ly - 2. * radius);
 
-        vx = 0.;
-        vy = 0.;
-        for (Disk &dsk : grains) {
-            if (dsk.is_touching(x, y, radius)) {
-                number_of_overlaps++;
-                break;
-            }
-        }
-        if (number_of_overlaps == 0) {
-            double mass = 4.0 / 3.0 * M_PI * radius * radius * radius * cfg.particles.density;
-            std::vector<bool> patch_state(cfg.patch.n);
-            if (cfg.patch.enforce_global_p) {
-
-                // Assign patches to the current grain
-                for (int k = 0; k < cfg.patch.n; k++) {
-                    patch_state[k] = all_patches[number_of_placed_grains * cfg.patch.n + k];
+            double vx = 0.;
+            double vy = 0.;
+            for (Disk &dsk : grains) {
+                if (dsk.is_touching(x, y, radius)) {
+                    overlaps = true;
+                    break;
                 }
-            } else {
-                // Independent assignment per grain
-                for (int k = 0; k < cfg.patch.n; k++) {
-                    double rand_val = dist(gen);
-                    if (rand_val < cfg.patch.p) {
-                        patch_state[k] = true; // donneur
-                    } else {
-                        patch_state[k] = false; // accepteur
+            }
+            if (!overlaps) {
+                double mass = 4.0 / 3.0 * M_PI * radius * radius * radius * cfg.particles.density;
+                std::vector<bool> patch_state(cfg.patch.n);
+                if (cfg.patch.enforce_global_p) {
+
+                    // Assign patches to the current grain
+                    for (int k = 0; k < cfg.patch.n; k++) {
+                        patch_state[k] = all_patches[number_of_placed_grains * cfg.patch.n + k];
+                    }
+                } else {
+                    // Independent assignment per grain
+                    for (int k = 0; k < cfg.patch.n; k++) {
+                        double rand_val = dist(gen);
+                        if (rand_val < cfg.patch.p) {
+                            patch_state[k] = true; // donneur
+                        } else {
+                            patch_state[k] = false; // accepteur
+                        }
                     }
                 }
+                double qmax = cfg.patch.q * cfg.patch.sat;
+                grains.emplace_back(number_of_placed_grains, cfg.patch.n, cfg.patch.sat, qmax,
+                                    patch_state, radius, mass, x, y, vx, vy);
+                number_of_placed_grains++;
             }
-            double qmax = cfg.patch.q * cfg.patch.sat;
-            grains.emplace_back(number_of_placed_grains, cfg.patch.n, cfg.patch.sat, qmax,
-                                patch_state, radius, mass, x, y, vx, vy);
-            number_of_placed_grains++;
         }
-    }
+        // Vérifions si la configuration va être statique
+        for (Disk &dsk : grains) {
+            if (cfg.boundaries.oscillation.shape == 0) {
+                double threshold_y_top =
+                    cfg.boundaries.ly / 2. - cfg.boundaries.oscillation.A_top + 1e-6;
+                double threshold_y_bot =
+                    -cfg.boundaries.ly / 2. + cfg.boundaries.oscillation.A_bot - 1e-6;
+                if (dsk.r().y() + dsk.radius() > threshold_y_top ||
+                    dsk.r().y() - dsk.radius() < threshold_y_bot) {
+                    static_configuration = false;
+                    break;
+                }
+            } // else if cfg.boundaries.oscillation.shape == 1 or 2 --> to be done
+        }
+
+    } while (static_configuration);
 
     if (cfg.output.save_layout) {
         std::ofstream myfile;
@@ -202,19 +225,20 @@ bool compute_disk_disk_contact(Disk &i_disk, Disk *j_disk_ptr, double i_deltan,
         bool a_patch = a->getPatchStates()[a_patch_index];
         bool b_patch = b->getPatchStates()[b_patch_index];
 
-        // int dq_contact = -1; // !! Attention : mettre une charge postive casse les conditions if
-        // ci-dessous !! (car on vérifie pas la valeur absolue pour la saturation pour pas ralentir
-        // le programme)
+        // int dq_contact = -1; // !! Attention : mettre une charge postive casse les conditions
+        // if ci-dessous !! (car on vérifie pas la valeur absolue pour la saturation pour pas
+        // ralentir le programme)
 
         // DEBUG
-        // std::cout << "Transfert de charge entre patch " << a_patch_index << " de la particule "
-        // << a->index() << " et patch " << b_patch_index << " de la particule " << b->index() <<
-        // std::endl; std::cout << "i_n: (" << i_n.x() << "," << i_n.y() << "Angles abs: a=" <<
-        // ang_abs_a << " b=" << ang_abs_b << std::endl;
+        // std::cout << "Transfert de charge entre patch " << a_patch_index << " de la particule
+        // "
+        // << a->index() << " et patch " << b_patch_index << " de la particule " << b->index()
+        // << std::endl; std::cout << "i_n: (" << i_n.x() << "," << i_n.y() << "Angles abs: a="
+        // << ang_abs_a << " b=" << ang_abs_b << std::endl;
 
         a->addContact(a_patch_index, b->index(), b_patch_index, toggle);
-        // b->addContact(b_patch_index, a->index(), a_patch_index, toggle); Je ne sais pas si c'est
-        // nécessaire de le faire des deux côtés
+        // b->addContact(b_patch_index, a->index(), a_patch_index, toggle); Je ne sais pas si
+        // c'est nécessaire de le faire des deux côtés
 
         if (a->getContactChargeTransfer(a_patch_index, b->index(), b_patch_index) == false &&
             b->getContactChargeTransfer(b_patch_index, a->index(), a_patch_index) ==
