@@ -425,23 +425,25 @@ AggregatedResult simulation(const config::Config &cfg, const int task_index) {
                     writer = std::make_unique<SimulationWriter>(
                         destination_full_dir + "/out_" + std::to_string(frame_id) + ".txt", cfg);
 
-                if (save_mode != 0) {
-                    // Prepare particle data for reduced output
-                    std::vector<ParticleData> particles;
-                    particles.reserve(grains.size());
-                    for (Disk &dsk : grains) {
-                        double charge_global = 0.0;
-                        double charge_abs = 0.0;
-                        for (double qc : dsk.getPatchCharges()) {
-                            charge_global += qc;
-                            charge_abs += std::abs(qc);
-                        }
+                // Prepare particle data for reduced output
+                std::vector<ParticleData> particles;
+                particles.reserve(grains.size());
+                for (Disk &dsk : grains) {
+                    double charge_global = 0.0;
+                    double charge_abs = 0.0;
+                    for (double qc : dsk.getPatchCharges()) {
+                        charge_global += qc;
+                        charge_abs += std::abs(qc);
+                    }
+                    if (save_mode != 0) {
                         particles.emplace_back(
                             dsk.index(), dsk.r().x(), dsk.r().y(), dsk.v().x(), dsk.v().y(),
                             dsk.theta(), dsk.radius(), charge_global, charge_abs,
                             dsk.isCaged()); // Using C++20 aggregate initialization
-                        charge_abs_total += charge_abs;
                     }
+                    charge_abs_total += charge_abs;
+                }
+                if (save_mode != 0) {
                     writer->write_snapshot(particles, time);
                 }
 
