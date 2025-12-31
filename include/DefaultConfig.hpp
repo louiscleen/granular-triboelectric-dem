@@ -2,15 +2,13 @@
 #define DEFAULTCONFIG_HPP
 
 #include "Constants.hpp"
-#include <string>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
+#include <string>
 
-namespace config
-{
-inline std::string generate_default_config_toml()
-{
+namespace config {
+inline std::string generate_default_config_toml() {
     return R"(#########################################
 #         Simulation DEM Config
 #########################################
@@ -127,12 +125,10 @@ save_layout = false  	# Save initial layout (with information on particle patche
 # | ...                          |)";
 }
 
-inline void write_default_config()
-{
+inline void write_default_config() {
     std::string default_config(DEFAULT_CONFIG_FILE);
     std::ofstream file(default_config);
-    if (!file)
-    {
+    if (!file) {
         std::cerr << "Unable to create the file: " << default_config << std::endl;
         return;
     }

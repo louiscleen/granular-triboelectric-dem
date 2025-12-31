@@ -10,5 +10,4 @@ inline constexpr int TAG_WORK = 1;
 inline constexpr int TAG_RESULT = 2;
 inline constexpr int TAG_STOP = 3;
 
-
 #endif

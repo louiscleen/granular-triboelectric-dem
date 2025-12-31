@@ -15,10 +15,8 @@ struct AggregatedResult {
     double mean_electrostatic_energy;
     double charge_transfers_normalized;
     double charge_abs_total;
-
 };
 
-AggregatedResult simulation(const config::Config& cfg, const int task_index);
-
+AggregatedResult simulation(const config::Config &cfg, const int task_index);
 
 #endif // SIMULATION_HPP
