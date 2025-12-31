@@ -39,6 +39,10 @@ CXXFLAGS_MPI_FAST := -std=c++20 -O3 -march=native -mtune=native -fno-math-errno 
 			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
 LDFLAGS_MPI_FAST := -L$(VORO_DIR) -lvoro++
 
+CXXFLAGS_LUCIA := -std=c++20 -O3 -march=znver3 -mtune=znver3 -fno-math-errno -fno-trapping-math -ffp-contract=fast -DNDEBUG \
+			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
+LDFLAGS_LUCIA := -L$(VORO_DIR) -lvoro++
+
 CXXFLAGS_LM4 := -std=c++20 -O3 -march=znver4 -mtune=znver4 -fno-math-errno -fno-trapping-math -ffp-contract=fast -DNDEBUG \
 			-Iinclude -I$(EIGEN_DIR) -I$(CXXOPTS_DIR) -I$(TOML_DIR) -I$(VORO_DIR) -isystem $(VORO_DIR)
 LDFLAGS_LM4 := -L$(VORO_DIR) -lvoro++
@@ -65,6 +69,7 @@ OBJS_MPI := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/MPI/%.o)
 OBJS_QUICK := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/quick/%.o)
 OBJS_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/fast/%.o)
 OBJS_MPI_FAST := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/MPI_fast/%.o)
+OBJS_LUCIA := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/LUCIA/%.o)
 OBJS_LM4 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/LM4/%.o)
 OBJS_NIC5 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/NIC5/%.o)
 OBJS_D2 := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/D2/%.o)
@@ -153,6 +158,14 @@ $(TARGET)_MPI_fast: $(OBJS_MPI_FAST)
 $(BUILD_DIR)/MPI_fast/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/MPI_fast
 	$(CXX_MPI) $(CXXFLAGS_MPI_FAST) -c $< -o $@
 
+# --- Mode LUCIA ---
+LUCIA: $(TARGET)_LUCIA
+
+$(TARGET)_LUCIA: $(OBJS_LUCIA)
+	$(CXX_MPI) $^ -o $@ $(LDFLAGS_LUCIA)
+$(BUILD_DIR)/LUCIA/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/LUCIA
+	$(CXX_MPI) $(CXXFLAGS_LUCIA) -c $< -o $@
+
 # --- Mode LM4 ---
 LM4: $(TARGET)_LM4
 
@@ -206,6 +219,9 @@ $(BUILD_DIR)/fast:
 $(BUILD_DIR)/MPI_fast:
 	mkdir -p $(BUILD_DIR)/MPI_fast
 
+$(BUILD_DIR)/LUCIA:
+	mkdir -p $(BUILD_DIR)/LUCIA
+
 $(BUILD_DIR)/LM4:
 	mkdir -p $(BUILD_DIR)/LM4
 
@@ -220,7 +236,7 @@ $(BUILD_DIR)/H2:
 
 # --- Nettoyage ---
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4 $(TARGET)_NIC5 $(TARGET)_D2 $(TARGET)_H2
+	rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)_debug $(TARGET)_MPI $(TARGET)_quick $(TARGET)_fast $(TARGET)_MPI_fast $(TARGET)_LM4 $(TARGET)_NIC5 $(TARGET)_D2 $(TARGET)_H2 $(TARGET)_LUCIA
 
 # -- Inclure les dépendances automatiquement ---
 -include $(DEPS_RELEASE)
