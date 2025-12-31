@@ -149,6 +149,10 @@ AggregatedResult simulation(const config::Config &cfg, const int task_index) {
         grains, cfg,
         task_index); // task_index to ensure different placements across tasks (for RNG seeding)
 
+    if (cfg.output.save_initial_layout) {
+        save_layout(grains, cfg, task_index, "il");
+    }
+
     // Correct container height for oscillating walls
     if (cfg.boundaries.oscillation.shape == 1) {
         ly += A_bot + cfg.boundaries.oscillation.A_top + 2 * cfg.boundaries.oscillation.correction;
@@ -464,6 +468,10 @@ AggregatedResult simulation(const config::Config &cfg, const int task_index) {
         toggle = !toggle;
     } // end main simulation loop
     file_minimal_data.close();
+
+    if (cfg.output.save_final_layout) {
+        save_layout(grains, cfg, task_index, "fl");
+    }
 
     // Compute mean values over specified time interval
     if (cfg.time.mean_time == 0.0)

@@ -143,8 +143,8 @@ int main(int argc, char *argv[]) {
             std::filesystem::create_directories(destination_full_dir);
         }
 
-        if (cfg.output.save_layout) {
-            std::string destination_layout_dir = cfg.output.directory + "/initial_layouts";
+        if (cfg.output.save_initial_layout == true || cfg.output.save_final_layout == true) {
+            std::string destination_layout_dir = cfg.output.directory + "/layouts";
             std::filesystem::create_directories(destination_layout_dir);
         }
 

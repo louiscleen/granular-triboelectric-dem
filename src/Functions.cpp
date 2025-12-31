@@ -123,32 +123,33 @@ void place_grains(std::vector<Disk> &grains, const config::Config &cfg, const in
                 }
             } // else if cfg.boundaries.oscillation.shape == 1 or 2 --> to be done
         }
-
+        // std::cout << "[INFO] Static configuration detected for task " << task_index << ",
+        // re-placing grains..." << std::endl;
     } while (static_configuration);
+}
 
-    if (cfg.output.save_layout) {
-        std::ofstream myfile;
-        std::string fileName = cfg.output.directory + "/initial_layouts/il_task_" +
-                               std::to_string(task_index) + ".txt";
-        myfile.open(fileName);
-        myfile.precision(10);
-        for (Disk &dsk : grains) {
-            myfile << dsk.index() << "\t" << dsk.r().x() << "\t" << dsk.r().y() << "\t"
-                   << dsk.v().x() << "\t" << dsk.v().y() << "\t" << dsk.theta() << "\t"
-                   << dsk.radius() << "\t";
+void save_layout(std::vector<Disk> &grains, const config::Config &cfg, const int task_index,
+                 const std::string &prefix) {
+    std::ofstream myfile;
+    std::string fileName = cfg.output.directory + "/layouts/" + prefix + "_task_" +
+                           std::to_string(task_index) + ".txt";
+    myfile.open(fileName);
+    myfile.precision(10);
+    for (Disk &dsk : grains) {
+        myfile << dsk.index() << "\t" << dsk.r().x() << "\t" << dsk.r().y() << "\t" << dsk.v().x()
+               << "\t" << dsk.v().y() << "\t" << dsk.theta() << "\t" << dsk.radius() << "\t";
 
-            for (int k = 0; k < cfg.patch.n; k++) {
-                myfile << dsk.getPatchStates().at(k) << "\t";
-            }
-
-            for (int k = 0; k < cfg.patch.n; k++) {
-                myfile << dsk.getPatchCharges().at(k) << "\t";
-            }
-
-            myfile << std::endl;
+        for (int k = 0; k < cfg.patch.n; k++) {
+            myfile << dsk.getPatchStates().at(k) << "\t";
         }
-        myfile.close();
+
+        for (int k = 0; k < cfg.patch.n; k++) {
+            myfile << dsk.getPatchCharges().at(k) << "\t";
+        }
+
+        myfile << std::endl;
     }
+    myfile.close();
 }
 
 // Pour ramener l'angle dans l'intervalle [0,2pi]

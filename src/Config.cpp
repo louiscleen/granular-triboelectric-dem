@@ -131,8 +131,8 @@ Config from_toml(const toml::table &tbl, std::string seed, std::string output_pa
     else
         cfg.output.save_mode = 0;
 
-    cfg.output.save_layout = output["save_layout"].value_or(false);
-
+    cfg.output.save_initial_layout = output["save_initial_layout"].value_or(false);
+    cfg.output.save_final_layout = output["save_final_layout"].value_or(false);
     return cfg;
 }
 

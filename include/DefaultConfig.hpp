@@ -108,7 +108,8 @@ directory = "data"      # Data directory name
 # - "minimal": save only the analysis in one global file & one minimal file per simulation (no particle data) 
 # Note that full & reduced data also include the minimal data.
 save_mode = "full"      
-save_layout = false  	# Save initial layout (with information on particle patches) to a file "initial_layout_<task_index>.txt"
+save_initial_layout = false     # Save initial layout (with information on particle patches) to a file "il_task_<task_index>.txt"
+save_final_layout = false       # Save final layout (with information on particle patches) to a file "fl_task_<task_index>.txt"
 
 # Binary file format (used in "reduced" save_mode):
 # For each simulation, all snapshots are stored in a single binary file with the following structure:

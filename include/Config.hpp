@@ -83,7 +83,8 @@ struct OutputConfig {
     std::string directory;
     std::string save_mode_str;
     int save_mode;
-    bool save_layout;
+    bool save_initial_layout;
+    bool save_final_layout;
 };
 
 struct Config {
