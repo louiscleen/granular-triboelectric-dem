@@ -225,8 +225,8 @@ bool compute_disk_disk_contact(Disk &i_disk, Disk *j_disk_ptr, double i_deltan,
             {
                 double a_charge = a->getPatchCharge(a_patch_index);
                 double b_charge = b->getPatchCharge(b_patch_index);
-                if (a_charge < qmax &&
-                    -b_charge < qmax) // Si patch donneur/accepteur n'est pas saturé
+                if (a_charge < qmax - 1e-18 &&
+                    -b_charge < qmax - 1e-18) // Si patch donneur/accepteur n'est pas saturé
                 {
                     double charge = std::min(q, std::min(qmax - a_charge, qmax + b_charge));
                     a->add_charge(a_patch_index, charge);
@@ -239,8 +239,8 @@ bool compute_disk_disk_contact(Disk &i_disk, Disk *j_disk_ptr, double i_deltan,
             {
                 double a_charge = a->getPatchCharge(a_patch_index);
                 double b_charge = b->getPatchCharge(b_patch_index);
-                if (-a_charge < qmax &&
-                    b_charge < qmax) // Si patch accepteur/donneur n'est pas saturé
+                if (-a_charge < qmax - 1e-18 &&
+                    b_charge < qmax - 1e-18) // Si patch accepteur/donneur n'est pas saturé
                 {
                     double charge = std::min(q, std::min(qmax + a_charge, qmax - b_charge));
                     a->add_charge(a_patch_index, -charge);
