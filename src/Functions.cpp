@@ -560,3 +560,62 @@ double kinetic_energy(Disk &dsk) {
     double KE_rot = 0.5 * dsk.inertia() * dsk.w().squaredNorm();
     return KE_trans + KE_rot;
 }
+
+std::vector<int> linspace_int(int a, int b, int n) {
+    if (n < 2) {
+        std::cerr << "[ERROR] linspace_int requires at least 2 points." << std::endl;
+        return {};
+    }
+
+    std::vector<int> values(n);
+
+    for (int i = 0; i < n; ++i) {
+        values[i] = a + static_cast<int>(std::round((b - a) * static_cast<double>(i) / (n - 1)));
+    }
+
+    return values;
+}
+
+void compute_kn(config::Config &cfg) {
+    if (cfg.contact.kn > 0.)
+        return; // stiffness déjà défini dans le fichier de config
+    double m = cfg.particles.density * 4.0 / 3.0 * M_PI * std::pow(cfg.particles.min_rad, 3);
+    double delta_max = cfg.contact.delta_max_over_R * cfg.particles.min_rad;
+    double A_max = std::max(cfg.boundaries.oscillation.A_bot, cfg.boundaries.oscillation.A_top);
+    double f_max = std::max(cfg.boundaries.oscillation.f_bot, cfg.boundaries.oscillation.f_top);
+    double omega_max = 2 * M_PI * f_max;
+    cfg.contact.kn = m * std::pow(A_max * omega_max, 2) / std::pow(delta_max, 2);
+
+    if (cfg.contact.kn > 1e6) {
+        std::cerr << "[WARNING] Computed kn is very high (" << cfg.contact.kn
+                  << "). Consider adjusting delta_max_over_R or the oscillation parameters."
+                  << "\nFor stability, it will be limited to 1e6." << std::endl;
+        cfg.contact.kn = 1e6;
+    }
+}
+
+void compute_dt(config::Config &cfg) {
+    if (cfg.time.dt > 0.)
+        return; // time step déjà défini dans le fichier de config
+
+    if (cfg.contact.kn <= 0.)
+        compute_kn(cfg); // s'assure que la stiffness est calculée
+
+    double C = 0.05; // Coefficient de sécurité (empirique, pour garantir la stabilité numérique)
+    double kn = cfg.contact.kn;
+    double m = cfg.particles.density * 4.0 / 3.0 * M_PI * std::pow(cfg.particles.min_rad, 3);
+
+    double dt = C * M_PI * std::sqrt(m / kn);
+    if (dt > 1e-3) {
+        std::cerr << "[WARNING] Computed time step is very large (" << dt
+                  << "). For stability, it will be limited to 1e-3." << std::endl;
+        dt = 1e-3;
+    }
+    cfg.time.dt = dt;
+
+    if (cfg.time.dt < 5e-7) {
+        std::cerr << "[WARNING] Computed time step is very small (" << cfg.time.dt
+                  << "). Consider adjusting the contact stiffness or particle properties."
+                  << std::endl;
+    }
+}

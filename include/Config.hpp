@@ -30,8 +30,11 @@ struct TimeConfig {
 
 struct ParticlesConfig {
     std::vector<int> N_list;
+    bool detect_transitions;
+    int number_of_values_around_transition;
     int N;
     std::string initial_layout;
+    std::vector<double> radii;
     double min_rad;
     double max_rad;
     double density;
@@ -56,6 +59,8 @@ struct PatchConfig {
 struct BoundariesConfig {
     double lx;
     double ly;
+    bool use_normalized_length;
+    std::vector<double> normalized_length;
 
     struct OscillationConfig {
         int shape; // 0 = straight, 1 = inclined, 2 = circular
@@ -72,6 +77,7 @@ struct ContactConfig {
     double e;
     double mu;
     double kn;
+    double delta_max_over_R;
 };
 
 struct ElectrostaticConfig {
@@ -106,6 +112,8 @@ Config load_config_file(const std::string &path, std::string seed = "",
                         std::string output_path = "", int rank = 0);
 std::vector<double> get_double_values(const toml::node_view<const toml::node> &node, int rank = 0);
 std::vector<int> get_int_values(const toml::node_view<const toml::node> &node, int rank = 0);
+int determine_transition_N(const Config &cfg,
+                           int n_N); // Détermine la valeur de N à simuler autour de la transition
 void get_parameters(Config &cfg, int task_index); // Récupère les paramètres pour un run
 
 } // namespace config

@@ -30,19 +30,29 @@ mean_time = -1.0        # Time over which the mean values are computed [s]
 # Note that mean values are computed over the interval [total - mean_time, total]
 # If set to 0.0, only the final values at time = total are considered, if set to < 0.0, mean values are computed over [rec_start to total]
 fps = 100 				# Framerate 					[frames/s]
-dt = 1e-05 				# Time step						[s]
 # Note that the number of snapshots is computed as: n_snapshots = (total-rec_start) * fps
+dt = -1 				# Time step						[s]
+# Note that if dt is set to a negative value, the program will automatically compute a stable time step
+# based on the contact parameters and particle properties (see compute_time_step() function in Functions.cpp)
+
 
 [particles]
 N = 50 					# Number of particles
 # N can be set as a list or table to run multiple simulation with the following syntax:
 # N = [50, 100, 120] is valid
 # N = { start = 1, end = 100, n = 100 } is also valid
+detect_transitions = 1     # If set to 1, the program will determine the values of N to simulate (+- 30% of the transition N).
+                           # Overrides the N values specified above
+                           # (Note that the transitions N were determined by preliminary simulations)
+number_of_values = 10      # Number of N values to simulate around the transition (if detect_transitions is enabled)
 
 # Initial positions: "random" or "load" (to load from initial_layout.txt)
-initial_layout = "random"	
-min_rad = 0.0005 		# Minimum radius 				[m]
-max_rad = 0.0005 		# Maximum radius 				[m]
+initial_layout = "random"
+radii = [0.0005, 0.0010, 0.0020] # List of radii to run (overrides min_rad and max_rad) [m]
+# min_rad = 0.0005 		# Minimum radius 				[m]
+# max_rad = 0.0005 		# Maximum radius 				[m]
+# Note min_rad and max_rad are no longer used.
+
 density = 2500.0 		# Density				    	[kg/m³]
 # For bronze, use density = 9500 kg/m³, for glass density = 2500 kg/m³, for m≈0.0005kg density = 954929.0 kg/m³
 g = [0.0, 0.0, 0.0]		# Gravity						[m/s²]
@@ -71,6 +81,10 @@ grounded_walls = 0      # If set to 0, walls are insulating (no charge transfer 
 [boundaries] 			# 
 lx = 0.03 				# Container width				[m]
 ly = 0.06 				# Container	height				[m]
+use_normalized_length = 0  # If set to 1, the dimension of the container is adjusted according to the particle size 
+                           # in order to sweep the normalized length ratio (see normalized_length parameter below)
+normalized_length = []     # List of normalized lengths to run (overrides ly) [dimensionless]
+
 [boundaries.oscillation]
 shape = 0          		# Piston shape, 0 = straight, 1 = inclined, 2 = circular)
 angle = 0.0 			# Inclination angle (only for inclined shape)	[rad]
@@ -82,7 +96,10 @@ f_top = 10 				# Top wall frequency 			[Hz]
 [contact]
 e = 0.9 				# Restitution coefficient 
 mu = 0.6				# Friction coefficient 
-kn = 1000.0 			# Normal stiffness  			[N/m]
+kn = -1      			# Normal stiffness  			[N/m]
+# Note that if kn is set to a negative value, the program will automatically compute a stiffness based (see compute_stiffness() function in Functions.cpp)
+delta_max_over_R = 0.01 # Maximum allowed overlap as a fraction of the minimum particle radius (used to compute kn if kn < 0)
+# Note : delta_max_over_R is irrelevant if kn is set to a positive value
 
 [electrostatic]
 eps_r = 1.0             # Relative permittivity

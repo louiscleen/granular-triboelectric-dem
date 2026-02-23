@@ -29,4 +29,9 @@ double Ep_compute_screened_coulomb_interaction(Disk &, Disk &, double, double, d
                                                std::vector<double> &, int, double);
 double kinetic_energy(Disk &);
 
+std::vector<int> linspace_int(int a, int b, int n);
+
+void compute_kn(config::Config &cfg);
+void compute_dt(config::Config &cfg);
+
 #endif // FUNCTIONS_HPP
